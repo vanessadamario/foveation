@@ -1,10 +1,7 @@
 import os
-import sys
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 from os.path import join
-import matplotlib.pyplot as plt
 
 
 def crop(x, edge=3):
@@ -97,8 +94,8 @@ def main():
     _, dim1, dim2 = x_test.shape
 
     edge_list = [0, 4, 6, 14, 26]
-    x_train = x_train[:10]
-    x_test = x_test[:5]
+    x_train = x_train
+    x_test = x_test
 
     # folder_plots = 'new_template_images'
     folder_dataset = '/om/user/vanessad/modified_MNIST_dataset'
