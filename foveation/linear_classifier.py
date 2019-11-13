@@ -30,8 +30,8 @@ def main():
     size_n_array = n_array.size
     repetitions = 30
 
-    root_data = '/om/user/vanessad'
-    root_code = '/om/vanessad/first_batch_exp'
+    root_data = '/om/user/vanessad/foveation'
+    root_code = '/om/vanessad/foveation/first_batch_exp'
     folder_data = join(root_data, 'modified_MNIST_dataset')
     folder_indices = join(root_code, 'indices_MNIST_samples_training')
     folder_results = join(root_code, 'results_exp_%s' % exp_type)
