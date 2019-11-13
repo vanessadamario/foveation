@@ -97,7 +97,7 @@ def main():
     x_train = x_train
     x_test = x_test
 
-    folder_dataset = '/om/user/vanessad/modified_MNIST_dataset'
+    folder_dataset = '/om/user/vanessad/foveation/modified_MNIST_dataset'
 
     os.makedirs(folder_dataset, exist_ok=True)
 
