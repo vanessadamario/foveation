@@ -97,10 +97,8 @@ def main():
     x_train = x_train
     x_test = x_test
 
-    # folder_plots = 'new_template_images'
     folder_dataset = '/om/user/vanessad/modified_MNIST_dataset'
 
-    os.makedirs(folder_plots, exist_ok=True)
     os.makedirs(folder_dataset, exist_ok=True)
 
     # experiment 1

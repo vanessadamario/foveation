@@ -3,9 +3,9 @@ import sys
 import numpy as np
 import tensorflow as tf
 from os.path import join
-from utils import generate_indices
+from foveation.utils import generate_indices
 from sklearn.preprocessing import OneHotEncoder
-from tensorflow.keras.callbacks import CSVLogger, EarlyStopping, History, TensorBoard, ModelCheckpoint
+from tensorflow.keras.callbacks import EarlyStopping
 
 
 def main():

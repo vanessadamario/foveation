@@ -1,12 +1,8 @@
-import os
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 import tensorflow as tf
 from os.path import join
-from numpy.random import choice
-from tensorflow.keras.callbacks import CSVLogger, EarlyStopping, History, TensorBoard, ModelCheckpoint
-from utils import generate_indices, generate_small_dataset, plot_history
+from tensorflow.keras.callbacks import CSVLogger, EarlyStopping
+from foveation.utils import generate_indices
 
 
 def noise():

@@ -4,12 +4,9 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 from os.path import join
-import matplotlib.pyplot as plt
-from tensorflow.keras.optimizers import SGD
 from sklearn.preprocessing import OneHotEncoder
-from utils import generate_indices, generate_small_dataset
-from tensorflow.keras.callbacks import CSVLogger, EarlyStopping, History, TensorBoard, ModelCheckpoint
-
+from foveation.utils import generate_indices
+from tensorflow.keras.callbacks import CSVLogger, EarlyStopping
 
 N_ARRAY = np.arange(1, 30)
 REPETITIONS = 2
