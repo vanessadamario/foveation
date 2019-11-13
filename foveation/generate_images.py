@@ -103,55 +103,63 @@ def main():
 
     # experiment 1
     print('exp 1')
-    exp_1_list_tr = []
     for i_, e_ in enumerate(edge_list):
         x_train_ = augment_size_add_noise(x_train, e_)
         _, dim_x, dim_y = x_train_.shape
-        exp_1_list_tr.append(x_train_)
         np.save(join(folder_dataset, 'exp_1_dim_%i_tr.npy' % dim_x), x_train_)
-
-    exp_1_list_ts = []
     for i_, e_ in enumerate(edge_list):
         x_test_ = augment_size_add_noise(x_test, e_)
         _, dim_x, dim_y = x_test_.shape
-        exp_1_list_ts.append(x_test_)
         np.save(join(folder_dataset, 'exp_1_dim_%i_ts.npy' % dim_x), x_test_)
 
     print('exp 2')
-    exp_2_list_tr = []
     for i_, e_ in enumerate(edge_list):
         x_train_ = upscale(x_train, e_)
         _, dim_x, dim_y = x_train_.shape
-        exp_2_list_tr.append(x_train_)
         np.save(join(folder_dataset, 'exp_2_dim_%i_tr.npy' % dim_x), x_train_)
-
-    exp_2_list_ts = []
     for i_, e_ in enumerate(edge_list):
         x_test_ = upscale(x_test, e_)
         _, dim_x, dim_y = x_test_.shape
-        exp_2_list_ts.append(x_test_)
         np.save(join(folder_dataset, 'exp_2_dim_%i_ts.npy' % dim_x), x_test_)
+    del x_train_, x_test_
 
-    print('exp 3, 4')
-    for i_, (e_, exp_1_, exp_2_) in enumerate(zip(edge_list, exp_1_list_tr, exp_2_list_tr)):
+    print('exp 3')
+    list_filename_exp_1_tr = ['exp_1_dim_%i_tr.npy' % (2 * e_ + 28) for e_ in edge_list]
+    for i_, (e_, filename_exp_1_tr) in enumerate(zip(edge_list, list_filename_exp_1_tr)):
+        exp_1_ = np.load(join(folder_dataset, filename_exp_1_tr))
         _, d1, d2 = exp_1_.shape
         up_factor = int((150 - d1) / 2)
         x_train_3 = upscale(exp_1_, up_factor)
         np.save(join(folder_dataset, 'exp_3_dim_%i_tr.npy' % d1), x_train_3)
+    del x_train_3
 
-        x_train_4 = augment_size_add_noise(exp_2_, up_factor)
-        _, dim_x, dim_y = x_train_3.shape
-        np.save(join(folder_dataset, 'exp_4_dim_%i_tr.npy' % d1), x_train_4)
-
-    for i_, (e_, exp_1_, exp_2_) in enumerate(zip(edge_list, exp_1_list_ts, exp_2_list_ts)):
+    list_filename_exp_1_ts = ['exp_1_dim_%i_ts.npy' % (2 * e_ + 28) for e_ in edge_list]
+    for i_, (e_, filename_exp_1_ts) in enumerate(zip(edge_list, list_filename_exp_1_ts)):
+        exp_1_ = np.load(join(folder_dataset, filename_exp_1_ts))
         _, d1, d2 = exp_1_.shape
         up_factor = int((150 - d1) / 2)
         x_test_3 = upscale(exp_1_, up_factor)
-        _, dim_x, dim_y = x_test_3.shape
-        np.save(join(folder_dataset, 'exp_3_dim_%i_ts.npy' % d1), x_test_3)
+        np.save(join(folder_dataset, 'exp_3_dim_%i_ts.npy' % d1, x_test_3))
+    del x_test_3
 
+    print('exp 4')
+    list_filename_exp_2_tr = ['exp_2_dim_%i_tr.npy' % (2 * e_ + 28) for e_ in edge_list]
+    for i_, (e_, filename_exp_2_tr) in enumerate(zip(edge_list, list_filename_exp_2_tr)):
+        exp_2_ = np.load(join(folder_dataset, filename_exp_2_tr))
+        _, d1, d2 = exp_2_.shape
+        up_factor = int((150 - d1) / 2)
+        x_train_4 = augment_size_add_noise(exp_2_, up_factor)
+        np.save(join(folder_dataset, 'exp_4_dim_%i_tr.npy' % d1), x_train_4)
+    del x_train_4
+
+    list_filename_exp_2_ts = ['exp_2_dim_%i_ts.npy' % (2 * e_ + 28) for e_ in edge_list]
+    for i_, (e_, filename_exp_2_ts) in enumerate(zip(edge_list, list_filename_exp_2_ts)):
+        exp_2_ = np.load(join(folder_dataset, filename_exp_2_ts))
+        _, d1, d2 = exp_2_.shape
+        up_factor = int((150 - d1) / 2)
         x_test_4 = augment_size_add_noise(exp_2_, up_factor)
         np.save(join(folder_dataset, 'exp_4_dim_%i_ts.npy' % d1), x_test_4)
+    del x_test_4
 
 
 if __name__ == '__main__':
