@@ -85,7 +85,7 @@ def main():
                           loss='mean_squared_error',
                           metrics=['accuracy'])
 
-            print(model.summary())
+             # print(model.summary())
 
             # csv_logger = CSVLogger(join(path_experiment, 'n_%s_r_%s_training.log' % (id_n_, id_r_)))
             overfit_stop = EarlyStopping(monitor='loss', min_delta=1e-5, patience=20)
@@ -112,7 +112,7 @@ def main():
     metrics_all[2] = loss_matrix
     metrics_all[3] = acc_matrix
 
-    np.save(join(folder_results, 'metrics_learning.npy'), metrics_all)
+    np.save(join(folder_results, 'metrics_%s.npy' % exp_type), metrics_all)
 
 
 if __name__ == '__main__':
