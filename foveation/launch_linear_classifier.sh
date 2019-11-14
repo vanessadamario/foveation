@@ -17,6 +17,6 @@ hostname
 module add openmind/singularity/3.4.1
 
 singularity exec -B /om:/om --nv /om/user/xboix/singularity/xboix-tensorflow2.simg \
-python /om/user/vanessad/foveation/linear_classifier \
+python /om/user/vanessad/foveation/linear_classifier.py \
 --experiment_index=${SLURM_ARRAY_TASK_ID} --experiment_design=1 --dataset_dimension=28
 
