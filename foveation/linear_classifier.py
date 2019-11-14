@@ -19,37 +19,30 @@ def main():
         load_idx
             0, generate, 1 load
     """
-    exp_type = sys.argv[1]
-    data_dim = sys.argv[2]
-    if len(sys.argv) < 4:
-        load_idx = True
-    else:
-        load_idx = int(sys.argv[3])  # 0 or 1
+    id_experiment = sys.argv[1].split('=')[1]
+    exp_paradigm = sys.argv[2].split('=')[1]
+    data_dim = sys.argv[3].split('=')[1]
 
     n_array = np.append(np.arange(1, 10), np.append(np.arange(10, 20, 2), np.arange(20, 55, 5)))
     size_n_array = n_array.size
-    repetitions = 30
+    repetitions = 3
 
     root_data = '/om/user/vanessad/foveation'
     root_code = '/om/user/vanessad/foveation/first_exp'
 
     folder_data = join(root_data, 'modified_MNIST_dataset')
     folder_indices = join(root_code, 'indices_MNIST_samples_training')
-    folder_results = join(root_code, 'results_exp_%s' % exp_type)
+    folder_results = join(root_code, 'first_batch_exp', 'results_exp_%s' % exp_paradigm)
 
     mnist = tf.keras.datasets.mnist  # load mnist dataset
     (_, y_train), (_, y_test) = mnist.load_data()
 
     del _
 
-    os.makedirs(folder_data, exist_ok=True)
-    os.makedirs(folder_indices, exist_ok=True)
+    generate_indices(y_train, n_array, repetitions, folder_indices)
 
-    if not load_idx:
-        generate_indices(y_train, n_array, repetitions, folder_indices)
-
-    x_train = np.load(join(folder_data, 'exp_%s_dim_%s_tr.npy' % (exp_type, data_dim)))
-    x_test = np.load(join(folder_data, 'exp_%s_dim_%s_ts.npy' % (exp_type, data_dim)))
+    x_train = np.load(join(folder_data, 'exp_%s_dim_%s_tr.npy' % (exp_paradigm, data_dim)))
+    x_test = np.load(join(folder_data, 'exp_%s_dim_%s_ts.npy' % (exp_paradigm, data_dim)))
     n_classes = np.unique(y_train).size
 
     y_train_ = np.zeros((y_train.size, n_classes), dtype=int)
@@ -85,8 +78,6 @@ def main():
                           loss='mean_squared_error',
                           metrics=['accuracy'])
 
-             # print(model.summary())
-
             # csv_logger = CSVLogger(join(path_experiment, 'n_%s_r_%s_training.log' % (id_n_, id_r_)))
             overfit_stop = EarlyStopping(monitor='loss', min_delta=1e-5, patience=20)
 
@@ -112,7 +103,7 @@ def main():
     metrics_all[2] = loss_matrix
     metrics_all[3] = acc_matrix
 
-    np.save(join(folder_results, 'metrics_%s.npy' % exp_type), metrics_all)
+    np.save(join(folder_results, 'metrics_%s_%s.npy' % (data_dim, id_experiment)), metrics_all)
 
 
 if __name__ == '__main__':

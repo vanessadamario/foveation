@@ -1,15 +1,22 @@
 #!/bin/bash
 
-#SBATCH --nodes=4
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=vanedamario@gmail.com
+
+
+#SBATCH -n 1
+#SBATCH --array=0-9
+#SBATCH -c 2
+#SBATCH --job-name=experiment1
+#SBATCH --mem=12GB
+#SBATCH --gres=gpu:tesla-k80:1
+#SBATCH -t 20:00:00
+#SBATCH --partition=cbmm
+#SBATCH -D ./
+
+hostname
 
 module add openmind/singularity/3.4.1
 
-array=(28 36 40 56 80)
+singularity exec -B /om:/om --nv /om/user/xboix/singularity/xboix-tensorflow2.simg \
+python /om/user/vanessad/foveation/linear_classifier \
+--experiment_index=${SLURM_ARRAY_TASK_ID} --experiment_design=1 --dataset_dimension=28
 
-for k in ${array[@]}
-do
-    echo $k
-    singularity exec -B /om:/om --nv /om/user/xboix/singularity/xboix-tensorflow2.simg python linear_classifier.py 1 $k
-done
