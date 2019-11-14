@@ -31,7 +31,8 @@ def main():
     repetitions = 30
 
     root_data = '/om/user/vanessad/foveation'
-    root_code = '/om/vanessad/foveation/first_batch_exp'
+    root_code = '/om/user/vanessad/foveation/first_exp'
+
     folder_data = join(root_data, 'modified_MNIST_dataset')
     folder_indices = join(root_code, 'indices_MNIST_samples_training')
     folder_results = join(root_code, 'results_exp_%s' % exp_type)
@@ -45,6 +46,8 @@ def main():
 
     if not load_idx:
         generate_indices(y_train, n_array, repetitions, folder_indices)
+
+    return
 
     x_train = np.load(join(folder_data, 'exp_%s_dim_%s_tr.npy' % (exp_type, data_dim)))
     x_test = np.load(join(folder_data, 'exp_%s_dim_%s_ts.npy' % (exp_type, data_dim)))
