@@ -92,13 +92,14 @@ def main():
 
     print('exp 2')
     for i_, e_ in enumerate(edge_list):
-        x_train_ = upscale(x_train, e_)
-        _, dim_x, dim_y = x_train_.shape
-        np.save(join(folder_dataset, 'exp_2_dim_%i_tr.npy' % dim_x), x_train_)
+        _, old_dim_x, old_dim_y = x_train.shape
+        new_dim_x = old_dim_x + 2 * e_
+        new_dim_y = old_dim_y + 2 * e_
+        x_train_ = upscale(x_train, new_shape_x=new_dim_x, new_shape_y=new_dim_y)
+        np.save(join(folder_dataset, 'exp_2_dim_%i_tr.npy' % new_dim_x), x_train_)
     for i_, e_ in enumerate(edge_list):
-        x_test_ = upscale(x_test, e_)
-        _, dim_x, dim_y = x_test_.shape
-        np.save(join(folder_dataset, 'exp_2_dim_%i_ts.npy' % dim_x), x_test_)
+        x_test_ = upscale(x_test, new_shape_x=new_dim_x, new_shape_y=new_dim_y)
+        np.save(join(folder_dataset, 'exp_2_dim_%i_ts.npy' % new_dim_x), x_test_)
     del x_train_, x_test_
 
     print('exp 3')
@@ -107,7 +108,7 @@ def main():
         exp_1_ = np.load(join(folder_dataset, filename_exp_1_tr))
         _, d1, d2 = exp_1_.shape
         up_factor = int((150 - d1) / 2)
-        x_train_3 = upscale(exp_1_, up_factor)
+        x_train_3 = upscale(exp_1_, new_shape_x=150, new_shape_y=150)
         np.save(join(folder_dataset, 'exp_3_dim_%i_tr.npy' % d1), x_train_3)
     del x_train_3
 
@@ -116,7 +117,7 @@ def main():
         exp_1_ = np.load(join(folder_dataset, filename_exp_1_ts))
         _, d1, d2 = exp_1_.shape
         up_factor = int((150 - d1) / 2)
-        x_test_3 = upscale(exp_1_, up_factor)
+        x_test_3 = upscale(exp_1_, new_shape_x=150, new_shape_y=150)
         np.save(join(folder_dataset, 'exp_3_dim_%i_ts.npy' % d1, x_test_3))
     del x_test_3
 
