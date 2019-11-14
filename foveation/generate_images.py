@@ -97,7 +97,11 @@ def main():
         new_dim_y = old_dim_y + 2 * e_
         x_train_ = upscale(x_train, new_shape_x=new_dim_x, new_shape_y=new_dim_y)
         np.save(join(folder_dataset, 'exp_2_dim_%i_tr.npy' % new_dim_x), x_train_)
+
     for i_, e_ in enumerate(edge_list):
+        _, old_dim_x, old_dim_y = x_test.shape
+        new_dim_x = old_dim_x + 2 * e_
+        new_dim_y = old_dim_y + 2 * e_
         x_test_ = upscale(x_test, new_shape_x=new_dim_x, new_shape_y=new_dim_y)
         np.save(join(folder_dataset, 'exp_2_dim_%i_ts.npy' % new_dim_x), x_test_)
     del x_train_, x_test_
