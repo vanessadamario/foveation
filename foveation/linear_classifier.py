@@ -57,6 +57,8 @@ def main():
     y_train_[y_train] = 1
     y_test_[y_test] = 1
 
+    print(y_test_[0])
+
     return
 
     loss_matrix = np.zeros((repetitions, size_n_array))
