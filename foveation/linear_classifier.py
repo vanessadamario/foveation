@@ -82,7 +82,7 @@ def main():
                     tf.keras.layers.Dense(10, activation='linear')])
 
             model.compile(optimizer='SGD',  # nothing should change -- uniqueness
-                          loss=KERAS_LOSSES[loss_type],
+                          loss='mean_squared_error',
                           metrics=['accuracy'])
 
             print(model.summary())
