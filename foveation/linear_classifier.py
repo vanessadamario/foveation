@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import tensorflow as tf
 from os.path import join
-from foveation.utils import generate_indices
+from utils import generate_indices
 from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras.callbacks import EarlyStopping
 
