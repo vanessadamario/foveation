@@ -90,7 +90,7 @@ def main():
             # csv_logger = CSVLogger(join(path_experiment, 'n_%s_r_%s_training.log' % (id_n_, id_r_)))
             overfit_stop = EarlyStopping(monitor='loss', min_delta=1e-5, patience=20)
 
-            history = model.fit(x_train_, y_train_, epochs=EPOCHS,
+            history = model.fit(x_train_, y_train_, epochs=100000,
                                 validation_split=0, verbose=0,
                                 callbacks=[overfit_stop])  # min_n_train
 
