@@ -2,6 +2,7 @@ import os
 import numpy as np
 import tensorflow as tf
 from os.path import join
+from PIL import Image
 
 
 def crop(x, edge=3):
@@ -22,7 +23,7 @@ def crop(x, edge=3):
 
 
 def augment_size(x, edge):
-    """ We aument the original size of each image, by putting it in the center
+    """ We augment the original size of each image, by putting it in the center
     :param x: original image, tensor of size n_samples, dim_x, dim_y
     :param edge: number of pixels we want to enlarge the image for each size
     :return out: enlarged tensor
@@ -34,8 +35,7 @@ def augment_size(x, edge):
 
 
 def augment_size_add_noise(x, edge, noise_var=2e-1):
-    """
-    Add noise to the original image.
+    """ Add noise to the original image.
     :param x: tensor of size n_samples, dim_x, dim_y
     :param edge: number of pixels we want to enlarge the image for each size of the image
     :param noise_var: noise variance, Gaussian noise
@@ -47,43 +47,22 @@ def augment_size_add_noise(x, edge, noise_var=2e-1):
     return out
 
 
-def upscale(x, e=2):
-    """ We generate here the up-sampled version of an image."""
-    n_samples, dim1, dim2 = x.shape  # original data
-    c = 0
-    ll = np.zeros(dim1, dtype=int)
+def upscale(x, new_shape_x=150, new_shape_y=150):
+    """
+    Automatic PIL upscale of the image
+    :param x: input data, typically the dataset, of three dimensions
+    :param new_shape_x: int new_dim_x
+    :param new_shape_y: int new_dim_y
+    :return: new_x: new tensor
+    """
+    n_samples, dim1, dim2 = x.shape  # original
+    new_x = np.zeros((n_samples, new_shape_x, new_shape_y))
 
-    for k in range(dim1):
-        ll[k] = np.round(c).astype(int)
-        c += (dim1 + 2 * e) / dim1  # we generate the indices for the new image
+    for n_, old_image_ in enumerate(x):
+        image = Image.fromarray(old_image_)
+        new_x[n_] = image.resize(size=(new_shape_x, new_shape_y))
 
-    id_last_position_possible = dim1 + 2 * e - 1  # last acceptable value for the mask
-
-    # we would start filling the sparse largest matrix from index (0,0), non symmetrical to the center
-    discrepancy = id_last_position_possible - ll[-1]  # we take into account for asymmetries here
-    ll += (discrepancy // 2)
-    min_diff = np.min(np.diff(ll))  # the minimum gap - we average on tiles of this dimension
-
-    x_ = np.zeros((n_samples, dim1 + 2 * e, dim2 + 2 * e))
-    mesh_y, mesh_x = np.meshgrid(ll, ll)  # mesh-grid generation
-    x_[:, mesh_x, mesh_y] = x  # up-sampling, original pixels, with lots of holes
-    tmp_x = np.zeros((n_samples, dim1 + 2 * e + 2 * min_diff, dim2 + 2 * e + 2*min_diff))
-    tmp_x[:, min_diff:dim1 + 2 * e + min_diff,  min_diff: dim2 + 2 * e + min_diff] = x_
-
-    x__ = np.zeros((n_samples, dim1 + 2 * e + 2 * min_diff, dim2 + 2 * e + 2 * min_diff))
-
-    # we fill the holes from the up-sampled version here
-    for n in range(n_samples):
-        for i in range(min_diff, dim1 + 2 * e + min_diff):
-            for j in range(min_diff, dim2 + 2 * e + min_diff):
-                tmp_array = np.array([tmp_x[n, i - min_diff:i + min_diff + 1,
-                                            j - min_diff:j + min_diff + 1]])  # averaging on tiles
-                tmp_non_zeros = np.count_nonzero(tmp_array)
-
-                if tmp_non_zeros > 0:
-                    x__[n, i, j] = np.sum(tmp_array) / tmp_non_zeros  #  normalization
-
-    return x__[:, min_diff: dim1 + 2 * e + min_diff, min_diff: dim2 + 2 * e + min_diff]
+    return new_x
 
 
 def main():
@@ -98,7 +77,6 @@ def main():
     x_test = x_test
 
     folder_dataset = '/om/user/vanessad/foveation/modified_MNIST_dataset'
-
     os.makedirs(folder_dataset, exist_ok=True)
 
     # experiment 1
