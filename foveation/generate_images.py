@@ -118,7 +118,7 @@ def main():
         _, d1, d2 = exp_1_.shape
         up_factor = int((150 - d1) / 2)
         x_test_3 = upscale(exp_1_, new_shape_x=150, new_shape_y=150)
-        np.save(join(folder_dataset, 'exp_3_dim_%i_ts.npy' % d1, x_test_3))
+        np.save(join(folder_dataset, 'exp_3_dim_%i_ts.npy' % d1), x_test_3)
     del x_test_3
 
     print('exp 4')
