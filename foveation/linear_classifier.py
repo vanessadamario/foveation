@@ -2,6 +2,7 @@ import os
 import sys
 import numpy as np
 import tensorflow as tf
+import pandas as pd
 from os.path import join
 from utils import generate_indices
 from tensorflow.keras.callbacks import EarlyStopping
@@ -61,10 +62,6 @@ def main():
 
     y_train = y_train_
     y_test = y_test_
-
-    print(y_test[0])
-
-    return
 
     loss_matrix = np.zeros((repetitions, size_n_array))
     acc_matrix = np.zeros((repetitions, size_n_array))
