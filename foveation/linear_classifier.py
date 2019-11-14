@@ -27,12 +27,12 @@ def main():
     size_n_array = n_array.size
     repetitions = 3
 
-    root_data = '/om/user/vanessad/foveation'
-    root_code = '/om/user/vanessad/foveation/first_exp'
+    path_folder = '/om/user/vanessad/foveation'
+    path_code = join(path_folder, 'first_exp')
 
-    folder_data = join(root_data, 'modified_MNIST_dataset')
-    folder_indices = join(root_code, 'indices_MNIST_samples_training')
-    folder_results = join(root_code, 'first_batch_exp', 'results_exp_%s' % exp_paradigm)
+    folder_data = join(path_folder, 'modified_MNIST_dataset')
+    folder_indices = join(path_code, 'indices_MNIST_samples_training')
+    folder_results = join(path_code, 'results_exp_%s' % exp_paradigm)
 
     mnist = tf.keras.datasets.mnist  # load mnist dataset
     (_, y_train), (_, y_test) = mnist.load_data()
