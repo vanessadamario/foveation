@@ -4,7 +4,6 @@ import numpy as np
 import tensorflow as tf
 from os.path import join
 from utils import generate_indices
-from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras.callbacks import EarlyStopping
 
 
@@ -39,6 +38,7 @@ def main():
 
     mnist = tf.keras.datasets.mnist  # load mnist dataset
     (_, y_train), (_, y_test) = mnist.load_data()
+
     del _
 
     os.makedirs(folder_data, exist_ok=True)
@@ -47,15 +47,17 @@ def main():
     if not load_idx:
         generate_indices(y_train, n_array, repetitions, folder_indices)
 
-    return
+    print(y_train.shape, y_test.shape)
 
     x_train = np.load(join(folder_data, 'exp_%s_dim_%s_tr.npy' % (exp_type, data_dim)))
     x_test = np.load(join(folder_data, 'exp_%s_dim_%s_ts.npy' % (exp_type, data_dim)))
+    n_classes = np.unique(y_train).size
+    y_train_ = np.zeros((y_train.size, n_classes), dtype=int)
+    y_test_ = np.zeros((y_test.size, n_classes), dtype=int)
+    y_train_[y_train] = 1
+    y_test_[y_test] = 1
 
-    enc = OneHotEncoder(categories='auto')
-    enc.fit((np.unique(y_train)).reshape(-1, 1))
-    y_train = (enc.transform(y_train.reshape(-1, 1))).toarray()
-    y_test = (enc.transform(y_test.reshape(-1, 1))).toarray()
+    return
 
     loss_matrix = np.zeros((repetitions, size_n_array))
     acc_matrix = np.zeros((repetitions, size_n_array))
