@@ -47,17 +47,22 @@ def main():
     if not load_idx:
         generate_indices(y_train, n_array, repetitions, folder_indices)
 
-    print(y_train.shape, y_test.shape)
-
     x_train = np.load(join(folder_data, 'exp_%s_dim_%s_tr.npy' % (exp_type, data_dim)))
     x_test = np.load(join(folder_data, 'exp_%s_dim_%s_ts.npy' % (exp_type, data_dim)))
     n_classes = np.unique(y_train).size
+
     y_train_ = np.zeros((y_train.size, n_classes), dtype=int)
     y_test_ = np.zeros((y_test.size, n_classes), dtype=int)
-    y_train_[y_train] = 1
-    y_test_[y_test] = 1
 
-    print(y_test_[0])
+    for kk, idx in enumerate(y_train):
+        y_train_[kk, idx] = 1
+    for kk, idx in enumerate(y_test):
+        y_test_[kk, idx] = 1
+
+    y_train = y_train_
+    y_test = y_test_
+
+    print(y_test[0])
 
     return
 
