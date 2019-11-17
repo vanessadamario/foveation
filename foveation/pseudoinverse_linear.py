@@ -40,8 +40,7 @@ def generate_indices(y, n_, rep):
     list_id_classes = [np.squeeze(np.argwhere(y == y_val_))
                        for y_val_ in classes]  # we save the index for each class
 
-    id_all_classes = np.zeros((rep, c*n_),
-                              dtype=int)
+    id_all_classes = np.zeros((rep, c*n_), dtype=int)
     for r_ in range(rep):
         for id_class_, ll_ in enumerate(list_id_classes):
             idx_tr = choice(ll_, size=n_, replace=False)  # uniformly
@@ -71,6 +70,7 @@ def main():
 
     mnist = tf.keras.datasets.mnist  # load mnist dataset
     (_, y_train), (_, y_test) = mnist.load_data()
+    y_train_no_one_hot = y_train.copy()
 
     del _
 
@@ -95,7 +95,7 @@ def main():
     acc_matrix = np.zeros((repetitions, size_n_array))
 
     for id_n_, n_ in enumerate(n_array):
-        data_indices_all_rep = generate_indices(y_train, n_, repetitions)
+        data_indices_all_rep = generate_indices(y_train_no_one_hot, n_, repetitions)
 
         for id_r_, data_id_rep_ in enumerate(data_indices_all_rep):
             x_train_, y_train_ = x_train[data_id_rep_], y_train[data_id_rep_]
