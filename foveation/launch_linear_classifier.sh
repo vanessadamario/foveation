@@ -16,7 +16,16 @@ hostname
 
 module add openmind/singularity/3.4.1
 
-singularity exec -B /om:/om --nv /om/user/xboix/singularity/xboix-tensorflow2.simg \
+arraydim=(28 36 40 56 80)
+arrayexp=(2 3 4)
+
+for e_ in "${arrayexp[@]}"
+do
+  for d_ in "${arraydim[@]}"
+  do
+    singularity exec -B /om:/om --nv /om/user/xboix/singularity/xboix-tensorflow2.simg \
 python /om/user/vanessad/foveation/linear_classifier.py \
---experiment_index=${SLURM_ARRAY_TASK_ID} --experiment_design=1 --dataset_dimension=28
+--experiment_index=${SLURM_ARRAY_TASK_ID} --experiment_design=$e_ --dataset_dimension=$d_
+  done
+done
 

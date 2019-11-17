@@ -34,10 +34,6 @@ def main():
     folder_indices = join(path_code, 'indices_MNIST_samples_training')
     folder_results = join(path_code, 'results_exp_%s' % exp_paradigm)
 
-    np.save(join(folder_results, 'example_%s_%s.npy' % (data_dim, id_experiment)), np.zeros(3))
-
-    return
-
     mnist = tf.keras.datasets.mnist  # load mnist dataset
     (_, y_train), (_, y_test) = mnist.load_data()
 
@@ -92,8 +88,6 @@ def main():
             hist = pd.DataFrame(history.history)
             acc_at_train[id_r_, id_n_] = hist['accuracy'].values[-1]
             loss_at_train[id_r_, id_n_] = hist['loss'].values[-1]
-            if hist['accuracy'].values[-1] != 1:
-                return
 
             loss, acc = model.evaluate(x_test, y_test)
             loss_matrix[id_r_, id_n_] = loss
