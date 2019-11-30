@@ -50,9 +50,8 @@ def generate_indices(y, n_, rep):
 
 def main():
 
-    id_experiment = sys.argv[1].split('=')[1]
-    exp_paradigm = sys.argv[2].split('=')[1]
-    data_dim = sys.argv[3].split('=')[1]
+    exp_paradigm = sys.argv[1].split('=')[1]
+    data_dim = sys.argv[2].split('=')[1]
 
     n_array = np.append(np.arange(1, 10),
                         np.append(np.arange(10, 20, 2),
@@ -99,10 +98,10 @@ def main():
 
         for id_r_, data_id_rep_ in enumerate(data_indices_all_rep):
             x_train_, y_train_ = x_train[data_id_rep_], y_train[data_id_rep_]
-            x_train_ = x_train_.reshape(n_, -1)
+            x_train_ = x_train_.reshape(n_ * n_classes, -1)
             gram = np.linalg.inv(np.dot(x_train_, x_train_.T))
             sol_pinv = np.dot(x_train_.T, gram).dot(y_train_)
-            y_pred = sol_pinv.dot(y_test)
+            y_pred = np.dot(x_test, sol_pinv)
 
             loss_matrix[id_r_, id_n_] = (1./n_ts)*np.sum((y_pred - y_test)**2)
             acc_matrix[id_r_, id_n_] = compute_accuracy(y_test, y_pred)
@@ -113,7 +112,7 @@ def main():
     metrics_all[0] = loss_matrix
     metrics_all[1] = acc_matrix
 
-    np.save(join(folder_results, 'metrics_%s_%s.npy' % (data_dim, id_experiment)),
+    np.save(join(folder_results, 'metrics_pinv_%s_%s.npy' % (data_dim)),
             metrics_all)
 
 
