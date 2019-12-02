@@ -5,6 +5,7 @@ import tensorflow as tf
 import pandas as pd
 from os.path import join
 from utils import generate_indices
+from tensorflow.keras.optimizer import SGD
 from tensorflow.keras.callbacks import EarlyStopping
 
 
@@ -28,7 +29,7 @@ def main():
     repetitions = 3
 
     path_folder = '/om/user/vanessad/foveation'
-    path_code = join(path_folder, 'first_exp')
+    path_code = join(path_folder, 'first_exp_lr_decay')
 
     folder_data = join(path_folder, 'modified_MNIST_dataset')
     folder_indices = join(path_code, 'indices_MNIST_samples_training')
@@ -74,7 +75,8 @@ def main():
                     tf.keras.layers.Flatten(input_shape=(dim1, dim2)),
                     tf.keras.layers.Dense(10, activation='linear')])
 
-            model.compile(optimizer='SGD',  # nothing should change -- uniqueness
+            sgd = SGD(lr=0.01, decay=1e-6, momentum=0., nesterov=False)
+            model.compile(optimizer=sgd,  # nothing should change -- uniqueness
                           loss='mean_squared_error',
                           metrics=['accuracy'])
 
