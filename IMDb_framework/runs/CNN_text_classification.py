@@ -1,11 +1,11 @@
+import sys
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 from os.path import join
-import gensim.downloader as api
-from runs.generate_data import DatasetGenerator
-
-word_vectors = api.load("glove-wiki-gigaword-100")
+from runs.load_word2vec import embed_dct
+from tensorflow.keras.losses import categorical_crossentropy
+# from runs.generate_data import DatasetGenerator
 
 
 class ShallowCNNTextClassifier:
@@ -24,7 +24,7 @@ class ShallowCNNTextClassifier:
 
         self.exp = exp
         self.window_size = [3, 4, 5]
-        self.embedding = self.exp.dataset.embedding_dim
+        self.embedding = embed_dct[self.exp.dataset.embedding]['dimension']
         self.kernels = self.exp.hyper.nodes   # kernels for each convolutional filter?
         self.output_classes = output_classes  # task of sentiment analysis
         self.lr = self.exp.hyper.learning_rate
@@ -43,14 +43,20 @@ class ShallowCNNTextClassifier:
                 for b_ in bias_shapes]
         self.bias = bias
 
-        self.optimizer = tf.optimizers.SGD(learning_rate=self.lr, momentum=0.)
+        if self.exp.hyper.optimizer == 'adadelta':
+            self.optimizer = tf.optimizers.Adadelta(learning_rate=self.lr)
+        elif self.exp.hyper.optimizer == 'SGD':
+            self.optimizer = tf.optimizers.SGD(learning_rate=self.lr, momentum=0.)
+        else:
+            raise ValueError("Optimizer not implemented yet")
         self.best_early = np.Inf
         self.best_plateau = np.Inf
         self.current = None
         self.wait_lr = 0
         self.wait_early = 0
         self.stop_training = False
-
+        print("Model definition, done")
+        sys.stdout.flush()
         # self.train_and_save()
 
     def get_weight(self, shape, name):
@@ -82,8 +88,17 @@ class ShallowCNNTextClassifier:
         :returns bool_mask: np.array of dimension (n_samples, max_len-window+1, emb, 1)
         1 correspond to the features we want to keep
         """
-        n_samples = len(data)   # number of examples
+        if isinstance(data, list):
+            # print('data is a list')
+            # print(data)
+            if isinstance(data[0], np.ndarray):
+                n_samples = len(data)   # number of examples
+            else:
+                n_samples = 1
+                # print(data.shape)
+                data = []
         _, emb = data[0].shape  # dimensionality of the embedding
+        # print('embedding dimensionality', emb)
         max_length = np.max(np.array([d_.shape[0] for d_ in data]))
         data_padded = np.zeros((n_samples, max_length, emb, 1))  # uniform dim
         id_before_padding = [x_.shape[0] for x_ in data]
@@ -117,6 +132,7 @@ class ShallowCNNTextClassifier:
         max_norm = 3
         bernoulli = 0.5
         x1 = tf.cast(padded_data, dtype=tf.float32)
+
         c_lst = [tf.nn.conv2d(x1,
                               self.weights[j_],
                               strides=1,
@@ -134,33 +150,51 @@ class ShallowCNNTextClassifier:
         norm_factor = max_norm / tf.maximum(max_norm, tf.norm(self.weights[-1], axis=0))
         weights_output_ = tf.math.multiply(self.weights[-1], tf.expand_dims(norm_factor, axis=0))
 
+        print("Here is our model")
+        sys.stdout.flush()
+
         if eval:
             return tf.nn.softmax(tf.nn.relu(tf.matmul(stack_output, 0.5 * weights_output_)
                                             + self.bias[-1]))
         else:
             return tf.nn.softmax(tf.nn.relu(tf.matmul(tf.nn.dropout(stack_output, rate=bernoulli),
-                                                        weights_output_)
+                                                      weights_output_)
                                             + self.bias[-1]))
 
     def train_epoch_step(self,
                          inputs,
-                         outputs,
-                         batch_size=50):
+                         outputs):
         """ Generate the batches and call the train_step_batch function.
-
+        It takes as input the data, as output the labels.
+        If considers the number of batches, and then we divide the training set
+        into this number, passing the indexes.
+        Then we have the _gen_padding_bm -- is it really necessary?
+        We call the train_batch_step function --
+        and we evaluate the results (train loss at the end of epoch)
         :param inputs: not uniform input, a list
         :param outputs: target, the labels
-        :param batch_size: number of example for the batch
 
         :return [loss, accuracy]: loss and accuracy on the training set
         """
         n_samples = len(inputs)  # this is a list
-        batches_per_epoch = int(np.floor(n_samples / batch_size))
+        print('number of samples', n_samples)
+        sys.stdout.flush()
+
+        batches_per_epoch = int(np.floor(n_samples / self.exp.hyper.batch_size))
+        print('number of batches', batches_per_epoch)
+        sys.stdout.flush()
+
         id_batches = np.random.choice(np.arange(n_samples),
-                                      size=(batches_per_epoch, batch_size))
+                                      size=(batches_per_epoch, self.exp.hyper.batch_size))
         for id_ in id_batches:
+            print('batch number', id_)
+            sys.stdout.flush()
+
             tmp_in = self._gen_padding_bm([inputs[i__] for i__ in id_])
             self.train_batch_step(tmp_in, outputs[id_])
+        print('batch fitting terminated!!!')
+        sys.stdout.flush()
+
         return self.evaluate(inputs, outputs)
 
     def train_batch_step(self, padded_data, outputs):
@@ -174,11 +208,11 @@ class ShallowCNNTextClassifier:
         :return: loss value over single batch
         """
         with tf.GradientTape() as tape:
-            current_loss_sum_ = tf.reduce_mean(tf.losses.categorical_crossentropy(self.model(padded_data,
-                                                                                             padded=True,
-                                                                                             eval=False),
-                                                                                  tf.one_hot(outputs,
-                                                                                             depth=2)))
+            # tf.losses.
+            current_loss_sum_ = tf.reduce_mean(categorical_crossentropy(self.model(padded_data,
+                                                                                   padded=True,
+                                                                                   eval=False),
+                                                                        tf.cast(outputs, tf.float32)))
         grads = tape.gradient(current_loss_sum_, self.weights + self.bias)
         self.optimizer.apply_gradients(zip(grads, self.weights + self.bias))
 
@@ -192,44 +226,54 @@ class ShallowCNNTextClassifier:
         :return: the mean for the loss and the mean for the accuracy
         """
         n_samples = len(inputs)
-        evaluation_batch = 50  # maximum tolerance on the sample size
-        n_batches_eval = np.arange(0, n_samples, evaluation_batch) if n_samples > evaluation_batch else np.array([n_samples])
+        # print('input size:', n_samples)
+        evaluation_batch = 3  # maximum tolerance on the sample size
+        n_batches_eval = np.arange(0, n_samples, evaluation_batch) if n_samples > evaluation_batch else np.array([0])
+        # print(n_batches_eval)
         loss_lst = []
         accuracy_lst = []
 
-        for id_batch_, start_batch_ in zip(np.arange(n_batches_eval.size), n_batches_eval):
+        for id_batch_, start_batch_ in enumerate(n_batches_eval):
             end_batch_ = None if id_batch_ == n_batches_eval.size - 1 else start_batch_ + evaluation_batch
+            print('start end indexes in evaluation', start_batch_, end_batch_)
+            sys.stdout.flush()
+
+            # print(start_batch_, end_batch_)
             logits = self.model(inputs[start_batch_:end_batch_])
-            loss = tf.reduce_mean(tf.losses.categorical_crossentropy(logits,
-                                                                     tf.one_hot(outputs[start_batch_:end_batch_],
-                                                                                depth=2)))
-            accuracy = tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.one_hot(outputs[start_batch_:end_batch_],
-                                                                                  depth=2),
-                                                                       tf.one_hot(tf.argmax(logits, 1),
-                                                                                  depth=2)))
+            # print('problems with the output', outputs[start_batch_:end_batch_])
+            # print(tf.one_hot(outputs[start_batch_:end_batch_], depth=2))
+            loss = tf.reduce_mean(categorical_crossentropy(logits, tf.cast(outputs[start_batch_:end_batch_],
+                                                                           tf.float32)))
+            accuracy = tf.reduce_mean(tf.keras.metrics.binary_accuracy(tf.cast(outputs[start_batch_:end_batch_],
+                                                                               tf.float32),
+                                                                       tf.cast(logits, tf.float32)))
             loss_lst.append(loss)
             accuracy_lst.append(accuracy)
+        # print(accuracy_lst, loss_lst)
         return tf.reduce_mean(loss_lst), tf.reduce_mean(accuracy_lst)
 
-    def fit(self,
-            x_train,
-            y_train,
-            x_valid,
-            y_valid,
-            max_epochs=5,
-            batch_size=32):
+    def optimize(self,
+                 x_train,
+                 y_train,
+                 x_valid,
+                 y_valid):
         """ Fit function.
 
         :param x_train: training input set, a list
         :param y_train: np.array, training labels
         :param x_valid: validation input set, a list
         :param y_valid: np.array, validation labels
-        :param max_epochs: maximum number of epochs
-        :param batch_size: dimensionality of the batch size
         """
-        for e_ in range(max_epochs):
+        y_train = y_train.astype(np.float32)
+        y_valid = y_valid.astype(np.float32)
+
+        for e_ in range(self.exp.hyper.epochs):
             print('Epoch %i' % e_)
-            tmp_t_loss, tmp_t_acc = self.train_epoch_step(x_train, y_train, batch_size)
+            sys.stdout.flush()
+            # file = open(join(self.exp.output_path, 'still_alive/epoch_%i.txt' % e_), "w")
+            # file.close()
+            tmp_t_loss, tmp_t_acc = self.train_epoch_step(x_train, y_train)
+
             tmp_v_loss, tmp_v_acc = self.evaluate(x_valid, y_valid)
 
             self.current = tmp_v_loss
@@ -238,7 +282,8 @@ class ShallowCNNTextClassifier:
                 output_vals = tmp_array
             else:
                 output_vals = np.vstack((output_vals, tmp_array))
-            self.lr_reduce_on_plateau()
+            if self.exp.hyper.lr_at_plateau:
+                self.lr_reduce_on_plateau()
             self.early_stopping()
             if self.stop_training:
                 self.generate_history(output_vals)
@@ -274,8 +319,8 @@ class ShallowCNNTextClassifier:
                     self.wait_lr = 0
 
     def early_stopping(self,
-                       patience=10,
-                       min_delta=1e-6):
+                       patience=8,  # 10 for sst2
+                       min_delta=1e-4):  # 1e-6 for sst2
         """
         Monitor the validation loss and stop training if there is no decrease of the validation loss after patience.
 
@@ -306,6 +351,17 @@ class ShallowCNNTextClassifier:
                           columns=['loss', 'accuracy', 'val_loss', 'val_accuracy', 'lr'])
         df.to_csv(join(self.exp.output_path, 'history.csv'))
 
+    def test_and_save(self, x_ts, y_ts):
+        """ Test the model and save the performance.
+        :param x_ts: test input data
+        :param y_ts: test output data
+        """
+        y_ts = y_ts.astype(np.float32)
+        ls_ts, ac_ts = self.evaluate(inputs=x_ts, outputs=y_ts)
+        np.save(join(self.exp.output_path, 'test.npy'),
+                np.array([ls_ts.numpy(), ac_ts.numpy()]))
+
+'''
     def train_and_save(self):
         """ Method to run and save network and results.
         We generate the data, as specified in self.exp,
@@ -331,3 +387,5 @@ class ShallowCNNTextClassifier:
 
         np.save(join(self.exp.output_path, 'test.npy'),
                 np.array([ls_ts.numpy(), ac_ts.numpy()]))
+
+    '''

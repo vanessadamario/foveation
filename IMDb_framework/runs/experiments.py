@@ -5,21 +5,25 @@ from os.path import join
 
 # if you want to include more architecture, add more elements to the dictionary
 # pseudo-inverse, linear with val criterion, one ReLU with val criterion.
-transf_dct = {'remove_words': [0., 0.15, 0.30, 0.50, 0.80],
-              'change_start': [1, 10, 20, 30, 40]}
-
-n_lst = [5, 20, 50, 100, 1000]
-lr_lst = [1, 1e-1, 1e-2, 1e-3, 1e-4]
-batch_size_lst = [2, 10, 32, 50]
-n_epochs = 500
-optimizer_type = 'SGD'
+redundancy_array = [0.]  # , 0.5, 1]
+noise_array = [0., 0.5, 1]
+# sst2 500 epochs, early_stop_delta = 1e-6
+n_lst = [10, 50, 100, 500]  # [56625]
+lr_lst = [5, 2, 1, 1e-1, 1e-2, 1e-3, 1e-4]
+initialization_strategies = ['uniform_all']
+embedding_lst = ['word2vec']
+batch_size_lst = [5, 50]
+n_epochs = 100
+optimizer_type = 'adadelta'  # 'SGD'
 loss = ['cross_entropy']
-architectures_hyper = {'linear': {'nodes': [128],
-                                  'window': [None]},
+architectures_hyper = {
+                       # 'linear': {'nodes': [128],
+                       #            'window': [None]},
                        'FC': {'nodes': [128],
                               'window': [None]},
-                       'CNN': {'nodes': [10],  # number of kernels
-                               'window': [8]}}
+                       'CNN': {'nodes': [100],  # number of kernels
+                               'window': [[3, 4, 5]]}
+                      }
 
 
 class Hyperparameters(object):
@@ -73,23 +77,26 @@ class Dataset:
     the scenario, if we modify the original dataset, and the dimensions of the input.
     This is valid for the modified_MNIST_dataset, verify if it is going to be valid next"""
     def __init__(self,
-                 removed_words=0,
-                 first_index=0,
+                 redundant_phrases=0,
+                 noisy_phrases=0,
                  n_training=10,
-                 embedding_dim=100,
-                 output_dims=2):
+                 embedding='word2vec',
+                 output_dims=2,
+                 initialization='gaussian'):
         """
-        :param removed_words: float, percentage of removed words
-        :param first_index: int, all the more frequent words are removed
+        :param redundant_phrases: number of additional phrases belonging to the same class of the sentence
+        :param noisy_phrases: number of additional phrases belonging to a neutral class
         :param n_training: int, number of training examples
-        :param embedding_dim: int, GloVe 100, word2vec 300
+        :param embedding: str, word2vec by default
         :param output_dims: int, number of classes, two in sentiment analysis
+        :param initialization: str, the distribution used for the initialization of unknown words
         """
-        self.removed_words = removed_words
-        self.first_index = first_index
+        self.redundant_phrases = redundant_phrases
+        self.noisy_phrases = noisy_phrases
         self.n_training = n_training
-        self.embedding_dim = embedding_dim
+        self.embedding = embedding
         self.output_dims = output_dims
+        self.initialization = initialization
 
 
 class Experiment(object):
@@ -168,39 +175,43 @@ def generate_experiments(output_path):
 
     # These loops indicate your experiments. Change them accordingly.
     for net_ in architectures_hyper.keys():
-        for nodes_ in architectures_hyper[net_]['nodes']:
-            for window_ in architectures_hyper[net_]['window']:
-                for loss_ in loss:
-                    for rm_words in transf_dct['remove_words']:
-                        for mst_freq in transf_dct['change_start']:
-                            for lr_ in lr_lst:
-                                for n_ in n_lst:
-                                    batch_ = [int(b_) for b_ in batch_size_lst if b_ < n_ * 2]
-                                    for bs_ in batch_:
-                                        hyper = Hyperparameters(learning_rate=lr_,
-                                                                architecture=net_,
-                                                                nodes=nodes_,
-                                                                window=window_,
-                                                                batch_size=bs_,
-                                                                epochs=n_epochs,
-                                                                optimizer=optimizer_type,
-                                                                loss=loss_)
-                                        dataset = Dataset(removed_words=rm_words,
-                                                          first_index=int(mst_freq),
-                                                          n_training=n_)
-                                        exp = Experiment(id=idx_base,
-                                                         output_path=output_path+'train_'+str(idx_base),
-                                                         train_completed=False,
-                                                         hyper=hyper.__dict__,
-                                                         dataset=dataset.__dict__)
-                                        print(exp.__dict__)
-                                        idx = exp_exists(exp, info)
+        for e_ in embedding_lst:
+            for init_ in initialization_strategies:
+                for nodes_ in architectures_hyper[net_]['nodes']:
+                    for window_ in architectures_hyper[net_]['window']:
+                        for loss_ in loss:
+                            for n_red in redundancy_array:
+                                for n_noise in noise_array:
+                                    for lr_ in lr_lst:
+                                        for n_ in n_lst:
+                                            batch_ = [int(b_) for b_ in batch_size_lst if b_ < n_ * 2]
+                                            for bs_ in batch_:
+                                                hyper = Hyperparameters(learning_rate=lr_,
+                                                                        architecture=net_,
+                                                                        nodes=nodes_,
+                                                                        window=window_,
+                                                                        batch_size=bs_,
+                                                                        epochs=n_epochs,
+                                                                        optimizer=optimizer_type,
+                                                                        loss=loss_)
+                                                dataset = Dataset(redundant_phrases=n_red,
+                                                                  noisy_phrases=n_noise,
+                                                                  n_training=n_,
+                                                                  embedding=e_,
+                                                                  initialization=init_)
+                                                exp = Experiment(id=idx_base,
+                                                                 output_path=output_path+'train_'+str(idx_base),
+                                                                 train_completed=False,
+                                                                 hyper=hyper.__dict__,
+                                                                 dataset=dataset.__dict__)
+                                                print(exp.__dict__)
+                                                idx = exp_exists(exp, info)
 
-                                        if idx is not False:
-                                            print("The experiment already exists with id:", idx)
-                                            continue
-                                        info[str(idx_base)] = exp.__dict__
-                                        idx_base += 1
+                                                if idx is not False:
+                                                    print("The experiment already exists with id:", idx)
+                                                    continue
+                                                info[str(idx_base)] = exp.__dict__
+                                                idx_base += 1
 
     with open(info_path, 'w') as outfile:
         json.dump(info, outfile, indent=4)
