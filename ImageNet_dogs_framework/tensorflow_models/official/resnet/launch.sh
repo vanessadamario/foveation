@@ -6,7 +6,7 @@
 #SBATCH --job-name=resnet
 #SBATCH --mem=24GB
 #SBATCH -t 50:00:00
-#SBATCH --gres=gpu:tesla-k80:8
+#SBATCH --gres=gpu:tesla-k80:1
 #SBATCH --workdir=./log/
 #SBATCH --qos=cbmm
 

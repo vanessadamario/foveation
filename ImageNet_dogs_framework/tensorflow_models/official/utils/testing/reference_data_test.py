@@ -32,7 +32,10 @@ import unittest
 import warnings
 
 import tensorflow as tf  # pylint: disable=g-bad-import-order
-from official.utils.testing import reference_data
+
+import sys
+sys.path.append("..")
+from utils.testing import reference_data
 
 
 class GoldenBaseTest(reference_data.BaseTest):

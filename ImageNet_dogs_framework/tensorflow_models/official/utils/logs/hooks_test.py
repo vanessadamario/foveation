@@ -23,8 +23,12 @@ import time
 
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
-from official.utils.logs import hooks
-from official.utils.testing import mock_lib
+
+import sys
+sys.path.append("..")
+
+from utils.logs import hooks
+from utils.testing import mock_lib
 
 tf.logging.set_verbosity(tf.logging.DEBUG)
 

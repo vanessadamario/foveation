@@ -22,7 +22,10 @@ from __future__ import print_function
 
 import tensorflow as tf  # pylint: disable=g-bad-import-order
 
-from official.utils.logs import logger
+
+import sys
+sys.path.append("..")
+from utils.logs import logger
 
 
 class ExamplesPerSecondHook(tf.train.SessionRunHook):

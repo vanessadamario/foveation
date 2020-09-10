@@ -18,7 +18,9 @@ import unittest
 from absl import flags
 import tensorflow as tf
 
-from official.utils.flags import core as flags_core  # pylint: disable=g-bad-import-order
+import sys
+sys.path.append("..")
+from utils.flags import core as flags_core  # pylint: disable=g-bad-import-order
 
 
 def define_flags():
