@@ -96,7 +96,9 @@ import threading
 import numpy as np
 import six
 import tensorflow as tf
+from os.path import join
 
+ROOT_IMAGE_DIR = '/om/user/vanessad/ImageNet_dogs_framework/dataset/Images'
 
 
 def _int64_feature(value):
@@ -258,8 +260,9 @@ def _process_image(filename, coder):
       height: integer, image height in pixels.
       width: integer, image width in pixels.
     """
+    filename = join(ROOT_IMAGE_DIR, filename)
     # Read the image file.
-    with tf.gfile.FastGFile(filename, 'rb') as f:
+    with tf.io.gfile.GFile(filename, 'rb') as f:
         image_data = f.read()
 
     # Clean the dirty data.
@@ -274,6 +277,7 @@ def _process_image(filename, coder):
         sys.stdout.flush()
         image_data = coder.cmyk_to_rgb(image_data)
 
+
     # Decode the RGB JPEG.
     image = coder.decode_jpeg(image_data)
 
@@ -286,8 +290,9 @@ def _process_image(filename, coder):
     return image_data, height, width
 
 
-def _process_image_files_batch(opt, coder, thread_index, ranges, name, filenames,
-                               synsets, labels, humans, bboxes, num_shards):
+def _process_image_files_batch(coder, thread_index, ranges, name, filenames,
+                               synsets, labels, humans, bboxes, num_shards,
+                               output_directory):
     """Processes and saves list of images as TFRecord in 1 thread.
 
     Args:
@@ -304,12 +309,14 @@ def _process_image_files_batch(opt, coder, thread_index, ranges, name, filenames
         list might contain from 0+ entries corresponding to the number of bounding
         box annotations for the image.
       num_shards: integer number of shards for this data set.
+      output_directory: string, path for the TFRecords
     """
     # Each thread produces N shards where N = int(num_shards / num_threads).
     # For instance, if num_shards = 128, and the num_threads = 2, then the first
     # thread would produce shards [0, 64).
     num_threads = len(ranges)
     assert not num_shards % num_threads
+    print('Number of threads %i.' %num_threads)
     num_shards_per_batch = int(num_shards / num_threads)
 
     shard_ranges = np.linspace(ranges[thread_index][0],
@@ -321,13 +328,16 @@ def _process_image_files_batch(opt, coder, thread_index, ranges, name, filenames
     for s in range(num_shards_per_batch):
         # Generate a sharded version of the file name, e.g. 'train-00002-of-00010'
         shard = thread_index * num_shards_per_batch + s
+        print('name, %s' % name)
         output_filename = '%s-%.5d-of-%.5d' % (name, shard, num_shards)
-        output_file = os.path.join(opt.output_directory, output_filename)
+        output_file = os.path.join(output_directory, output_filename)
+
         writer = tf.python_io.TFRecordWriter(output_file)
 
         shard_counter = 0
         files_in_shard = np.arange(shard_ranges[s], shard_ranges[s + 1], dtype=int)
         for i in files_in_shard:
+
             filename = filenames[i]
             label = labels[i]
             synset = synsets[i]
@@ -358,8 +368,8 @@ def _process_image_files_batch(opt, coder, thread_index, ranges, name, filenames
     sys.stdout.flush()
 
 
-def _process_image_files(opt, name, filenames, synsets, labels, humans,
-                         bboxes, num_shards):
+def _process_image_files(name, filenames, synsets, labels, humans,
+                         bboxes, num_shards, num_threads, output_directory):
     """Process and save list of images as TFRecord of Example protos.
 
     Args:
@@ -370,8 +380,10 @@ def _process_image_files(opt, name, filenames, synsets, labels, humans,
       humans: list of strings; each string is a human-readable label
       bboxes: list of bounding boxes for each image. Note that each entry in this
         list might contain from 0+ entries corresponding to the number of bounding
-        box annotations for the image.
-      num_shards: integer number of shards for this data set.
+        box annotations for the image
+      num_shards: integer number of shards for this data set
+      num_threads: integer number of threads for this data set
+      output_directory: path to the TFRecords
     """
     assert len(filenames) == len(synsets)
     assert len(filenames) == len(labels)
@@ -379,14 +391,14 @@ def _process_image_files(opt, name, filenames, synsets, labels, humans,
     assert len(filenames) == len(bboxes)
 
     # Break all images into batches with a [ranges[i][0], ranges[i][1]].
-    spacing = np.linspace(0, len(filenames), opt.num_threads + 1).astype(np.int)
+    spacing = np.linspace(0, len(filenames), num_threads + 1).astype(np.int)
     ranges = []
     threads = []
     for i in range(len(spacing) - 1):
         ranges.append([spacing[i], spacing[i + 1]])
 
     # Launch a thread for each batch.
-    print('Launching %d threads for spacings: %s' % (opt.num_threads, ranges))
+    print('Launching %d threads for spacings: %s' % (num_threads, ranges))
     sys.stdout.flush()
 
     # Create a mechanism for monitoring when all threads are finished.
@@ -397,8 +409,8 @@ def _process_image_files(opt, name, filenames, synsets, labels, humans,
 
     threads = []
     for thread_index in range(len(ranges)):
-        args = (opt, coder, thread_index, ranges, name, filenames,
-                synsets, labels, humans, bboxes, num_shards)
+        args = (coder, thread_index, ranges, name, filenames,
+                synsets, labels, humans, bboxes, num_shards, output_directory)
         t = threading.Thread(target=_process_image_files_batch, args=args)
         t.start()
         threads.append(t)
@@ -410,71 +422,35 @@ def _process_image_files(opt, name, filenames, synsets, labels, humans,
     sys.stdout.flush()
 
 
-def _find_image_files(opt, data_dir, labels_file, sample):
-    """Build a list of all images files and labels in the data set.
+def _find_image_files(name, data_dir):
+    """Build a list of all images files and labels in the data set
+    and performing randomization.
 
     Args:
-      data_dir: string, path to the root directory of images.
+      name: string, train, validation, or test
+      data_dir: string, path to the list of files and split.
 
-        Assumes that the ImageNet data set resides in JPEG files located in
-        the following directory structure.
-
-          data_dir/n01440764/ILSVRC2012_val_00000293.JPEG
-          data_dir/n01440764/ILSVRC2012_val_00000543.JPEG
-
-        where 'n01440764' is the unique synset label associated with these images.
-
-      labels_file: string, path to the labels file.
-
-        The list of valid labels are held in this file. Assumes that the file
-        contains entries as such:
-          n01440764
-          n01443537
-          n01484850
-        where each line corresponds to a label expressed as a synset. We map
-        each synset contained in the file to an integer (based on the alphabetical
-        ordering) starting with the integer 1 corresponding to the synset
-        contained in the first line.
-
-        The reason we start the integer labels at 1 is to reserve label 0 as an
-        unused background class.
+        Assumes that the list folder contains three types of file.
+        One related to labels
+            1
+            1
+        One related to the name_file
+            n01440764_00000293
+            n01440764_00000543
+        One related to the file path
+            data_dir/n01440764/n01440764_00000293.JPEG
+            data_dir/n01440764/n01440764_00000543.JPEG
 
     Returns:
       filenames: list of strings; each string is a path to an image file.
       synsets: list of strings; each string is a unique WordNet ID.
       labels: list of integer; each integer identifies the ground truth.
     """
-    print('Determining list of input files and labels from %s.' % data_dir)
-    sys.stdout.flush()
 
-    challenge_synsets = [l.strip() for l in
-                         tf.gfile.FastGFile(labels_file, 'r').readlines()]
-
-    labels = []
-    filenames = []
-    synsets = []
-
-    # Leave label index 0 empty as a background class.
-    label_index = 1
-
-    # Construct the list of JPEG files and labels. TODO could limit the files here, but don't have bbox info
-    for synset in challenge_synsets:
-        jpeg_file_path = '%s/%s/*.JPEG' % (data_dir, synset)
-        matching_files = tf.gfile.Glob(jpeg_file_path)
-
-        if opt.half_split and sample == True:
-            matching_files = matching_files[opt.init_half_split::2]
-
-        labels.extend([label_index] * len(matching_files))
-        synsets.extend([synset] * len(matching_files))
-        filenames.extend(matching_files)
-
-        if not label_index % 100:
-            print('Finished finding files in %d of %d classes.' % (
-                label_index, len(challenge_synsets)))
-            sys.stdout.flush()
-
-        label_index += 1
+    filenames = list(np.load(join(data_dir, 'file_list_%s.npy' % name)).astype(str))
+    labels = list(np.load(join(data_dir, 'labels_%s.npy' % name)))
+    synset_name = list(np.load(join(data_dir, 'synset_%s.npy' % name)).astype(str))
+    synsets = [s_.split('_')[0] for s_ in synset_name]
 
     # Shuffle the ordering of all image files in order to guarantee
     # random ordering of the images with respect to label in the
@@ -486,9 +462,7 @@ def _find_image_files(opt, data_dir, labels_file, sample):
     filenames = [filenames[i] for i in shuffled_index]
     synsets = [synsets[i] for i in shuffled_index]
     labels = [labels[i] for i in shuffled_index]
-
-    print('Found %d JPEG files across %d labels inside %s.' %
-          (len(filenames), len(challenge_synsets), data_dir))
+    print('Shuffled images!')
     sys.stdout.flush()
 
     return filenames, synsets, labels
@@ -529,7 +503,8 @@ def _find_image_bounding_boxes(filenames, image_to_bboxes):
     num_image_bbox = 0
     bboxes = []
     for f in filenames:
-        basename = os.path.basename(f)
+        basename = os.path.basename(f).split('.')[0]
+        # with only basename we have the .jpg ext, we need the split
         if basename in image_to_bboxes:
             bboxes.append(image_to_bboxes[basename])
             num_image_bbox += 1
@@ -542,95 +517,64 @@ def _find_image_bounding_boxes(filenames, image_to_bboxes):
     return bboxes
 
 
-def _process_dataset(opt, name, directory, num_shards,
-                     synset_to_human, image_to_bboxes):
+def _process_dataset(name, directory, num_threads, num_shards,
+                     synset_to_human, image_to_bboxes,
+                     output_directory):
     """Process a complete data set and save it as a TFRecord.
 
     Args:
       name: string, unique identifier specifying the data set.
       directory: string, root path to the data set.
+      num_threads: int, number of threads for the dataset
       num_shards: integer number of shards for this data set.
-      num_train_ex: integer number of training examples desired for each
-        class. Randomly selected, all have bbox (unless there aren't
-        enough bboxes)
       synset_to_human: dict of synset to human labels, e.g.,
         'n02119022' --> 'red fox, Vulpes vulpes'
       image_to_bboxes: dictionary mapping image file names to a list of
         bounding boxes. This list contains 0+ bounding boxes.
     """
 
-    filenames, synsets, labels = _find_image_files(opt, directory, opt.labels_file, name=='train')
+    filenames, synsets, labels = _find_image_files(name, directory)
     humans = _find_human_readable_labels(synsets, synset_to_human)
     bboxes = _find_image_bounding_boxes(filenames, image_to_bboxes)
 
-    _process_image_files(opt, name, filenames, synsets, labels,
-                         humans, bboxes, num_shards)
-
+    _process_image_files(name, filenames, synsets, labels,
+                         humans, bboxes, num_shards, num_threads,
+                         output_directory)
     # filenames/synsets/labels are already randomly shuffled
 
-    '''
-    sfilenames, ssynsets, slabels, shumans, sbboxes = ([] for __ in range(5))
-    counts = [0 for __ in range(1000)]  # maintain a counter of examples pulled per class
-    for f_idx in range(len(filenames)):
-        if len(bboxes[f_idx]):  # if there are >0 bboxes...
-            slabel = labels[f_idx]
-            if slabel > 990:
-                continue
-            if counts[slabel - 1] < num_train_ex:  # if the counter doesn't have <num_train_ex> of this label...
-                sfilenames.append(filenames[f_idx])  # select all the info for this image
-                ssynsets.append(synsets[f_idx])
-                slabels.append(labels[f_idx])
-                shumans.append(humans[f_idx])
-                sbboxes.append(bboxes[f_idx])
-                counts[slabel - 1] += 1  # increment counter of this label
 
-    print('NUM FILENAMES:', len(sfilenames))
-    print('NUM SYNSETS:', len(ssynsets))
-    print('NUM LABELS:', len(slabels))
-    print('NUM HUMANS:', len(shumans))
-    print('NUM BBOXES:', len(sbboxes))
-    print('NUM NONZERO BBOXES:', sum(bool(len(entry)) for entry in sbboxes))
-    _process_image_files(name, sfilenames, ssynsets, slabels,
-                         shumans, sbboxes, num_shards)
-
-    '''
-    # if len(sfilenames) < num_train_ex * 1000:	# if insufficient files due to insufficient bboxes...
-
-
-
-def _build_synset_lookup(imagenet_metadata_file):
+def _build_synset_lookup(imagenet_data_folder):
     """Build lookup for synset to human-readable label.
 
     Args:
-      imagenet_metadata_file: string, path to file containing mapping from
+      imagenet_metadata_folder: string, path to folder containing mapping from
         synset to human-readable label.
 
-        Assumes each line of the file looks like:
+        Each sub-folder  looks like:
 
           n02119247    black fox
           n02119359    silver fox
           n02119477    red fox, Vulpes fulva
 
         where each line corresponds to a unique mapping. Note that each line is
-        formatted as <synset>\t<human readable label>.
+        formatted as <>\t<name>.
 
+        NEW: in our version, the Image folder contains all the subfolders, one per class.
+        The folder has as synset_human. We parse those
     Returns:
       Dictionary of synset to human labels, such as:
         'n02119022' --> 'red fox, Vulpes vulpes'
     """
-    lines = tf.gfile.FastGFile(imagenet_metadata_file, 'r').readlines()
     synset_to_human = {}
-    for l in lines:
-        if l:
-            parts = l.strip().split('\t')
-            assert len(parts) == 2
-            synset = parts[0]
-            human = parts[1]
-            synset_to_human[synset] = human
+    list_classes = sorted(os.listdir(imagenet_data_folder))
+    for c_ in list_classes:
+        synset = c_[:9]  # hard-coded parsing
+        human = c_[10:]
+        synset_to_human[synset] = human
     return synset_to_human
 
 
-def _build_bounding_box_lookup(bounding_box_file):
+def _build_bounding_box_lookup(bounding_box_path):
     """Build a lookup from image file to bounding boxes.
 
     Args:
@@ -652,51 +596,97 @@ def _build_bounding_box_lookup(bounding_box_file):
       Dictionary mapping image file names to a list of bounding boxes. This list
       contains 0+ bounding boxes.
     """
-    lines = tf.gfile.FastGFile(bounding_box_file, 'r').readlines()
+    # notation <xmin>0</xmin>
+    classes = sorted([class_ for class_ in os.listdir(bounding_box_path)
+                     if class_.startswith('n')])
+    # print(classes)
+    num_image = 0
     images_to_bboxes = {}
     num_bbox = 0
-    num_image = 0
-    for l in lines:
-        if l:
-            parts = l.split(',')
-            assert len(parts) == 5, ('Failed to parse: %s' % l)
-            filename = parts[0]
-            xmin = float(parts[1])
-            ymin = float(parts[2])
-            xmax = float(parts[3])
-            ymax = float(parts[4])
-            box = [xmin, ymin, xmax, ymax]
+
+    for c_ in classes:
+        files = sorted([file_ for file_ in os.listdir(join(bounding_box_path, c_))
+                        if file_.startswith(c_.split('-')[0])])
+        for filename in files:
+            xmin, xmax, ymin, ymax = None, None, None, None
+            bb = 0
+            dims = 0
+            lines = tf.io.gfile.GFile(join(bounding_box_path, c_, filename), 'r').readlines()
 
             if filename not in images_to_bboxes:
                 images_to_bboxes[filename] = []
                 num_image += 1
-            images_to_bboxes[filename].append(box)
-            num_bbox += 1
+
+            for l in lines:
+                if '<width>' in l:
+                    width = float((l.split('<width>')[-1]).split('</width>')[0])
+                    dims += 1
+                if '<height>' in l:
+                    height = float((l.split('<height>')[-1]).split('</height>')[0])
+                    dims += 1
+                if '<xmin>' in l and xmin is None:
+                    xmin = float((l.split('<xmin>')[-1]).split('</xmin>')[0])
+                    bb += 1
+                if '<xmax>' in l and xmax is None:
+                    xmax = float((l.split('<xmax>')[-1]).split('</xmax>')[0])
+                    bb += 1
+                if '<ymin>' in l and ymin is None:
+                    ymin = float((l.split('<ymin>')[-1]).split('</ymin>')[0])
+                    bb += 1
+                if '<ymax>' in l and ymax is None:
+                    ymax = float((l.split('<ymax>')[-1]).split('</ymax>')[0])
+                    bb += 1
+
+                if bb == 4 and dims == 2:
+                    if xmax > width:
+                        xmax = width
+                    if ymax > height:
+                        ymax = height
+                    box = [xmin/width, ymin/height, xmax/width, ymax/height]
+
+                    images_to_bboxes[filename].append(box)
+                    num_bbox += 1
+                    break
 
     print('Successfully read %d bounding boxes '
           'across %d images.' % (num_bbox, num_image))
     return images_to_bboxes
 
 
-def run(opt):
 
-    if not os.path.exists(opt.output_directory):
-        os.makedirs(opt.output_directory)
+def main():
 
-    assert not opt.train_shards % opt.num_threads, (
+    output_directory = '/om/user/vanessad/ImageNet_dogs_framework/TFRecords'
+    split_directory = '/om/user/vanessad/ImageNet_dogs_framework/dataset/Lists/NEW_List'
+    annotation_folder = '/om/user/vanessad/ImageNet_dogs_framework/dataset/Annotation'
+
+    num_shards = 12
+    num_threads = 2
+
+    if not os.path.exists(output_directory):
+        os.makedirs(output_directory)
+
+    splits = ['train', 'validation', 'test']
+    list_output_directory = [join(output_directory, s_) for s_ in splits]
+    print(list_output_directory)
+    for od_ in list_output_directory:
+        if not os.path.exists(od_):
+            os.makedirs(od_)
+
+    assert not num_shards % num_threads, (
         'Please make the num_threads commensurate with train_shards')
-    assert not opt.validation_shards % opt.num_threads, (
-        'Please make the num_threads commensurate with '
-        'validation_shards')
-    print('Saving results to %s' % opt.output_directory)
-    sys.stdout.flush()
 
     # Build a map from synset to human-readable label.
-    synset_to_human = _build_synset_lookup(opt.imagenet_metadata_file)
-    image_to_bboxes = _build_bounding_box_lookup(opt.bounding_box_file)
+    synset_to_human = _build_synset_lookup(annotation_folder)
+    image_to_bboxes = _build_bounding_box_lookup(annotation_folder)
+
 
     # Run it!
-    _process_dataset(opt, 'train', opt.train_directory, opt.train_shards,
-                     synset_to_human, image_to_bboxes)
-    _process_dataset(opt, 'validation', opt.validation_directory,
-                     opt.validation_shards, synset_to_human, image_to_bboxes)
+    for id_, s_ in enumerate(splits):
+        _process_dataset(s_, split_directory, num_threads,
+                         num_shards, synset_to_human, image_to_bboxes,
+                         list_output_directory[id_])
+
+
+if __name__ == '__main__':
+    main()

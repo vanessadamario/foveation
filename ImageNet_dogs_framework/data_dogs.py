@@ -1,41 +1,59 @@
 import tensorflow as tf
 import os
-import data.resnet_preprocessing as imagenet_preprocessing
+import resnet_dogs_preprocessing as imagenet_preprocessing
 
-_NUM_TRAIN_FILES = 1024
+_NUM_TRAIN_FILES = 12
 _CYCLE_LENGTH = 10
-_NUM_THREADS = 5000
+_NUM_THREADS = 2
 _BUFFER_LENGTH = 1024
 _DEFAULT_IMAGE_SIZE = 227
 _NUM_CHANNELS = 3
+_NUM_SHARDS = 12
+
+# old opt fields
+# opt.dnn.name
+# self.opt.dataset.log_dir_base
+# self.opt.dataset.log_name
+# self.opt.yuv
+# self.opt.dataset.num_images_training
+# self.opt.dataset.num_images_validation
+# self.opt.hyper.batch_size
 
 
 class ImagenetDataset:
 
-    def __init__(self, opt, set_name='train', repeat=True):
-        self.opt = opt
+    def __init__(self,
+                 set_name='train',
+                 repeat=False,
+                 dnn_name='resnet',
+                 dataset_log_dir_base=None,
+                 dataset_log_name=None,
+                 num_images_train=10800,
+                 num_images_validation=1200,
+                 num_images_test=8580,
+                 hyper_batch_size=64,
+                 yuv=False,
+                 crop=True):
         self.set_name = set_name
-        self.num_total_images = 0
-        self.num_images_validation = 50000
+        # self.num_total_images
+        self.dnn_name = dnn_name
+        self.dataset_log_dir_base = dataset_log_dir_base
+        self.dataset_log_name = dataset_log_name
+        self.num_images_train = num_images_train
+        self.num_images_validation = num_images_validation  # dog dataset
+        self.num_images_test = num_images_test
+        self.hyper_batch_size = hyper_batch_size
+        self.yuv = yuv
+        self.crop = crop
         self.handle = self.create_dataset(repeat)
-
-    def get_filenames(self, set_name, data_dir):
-        """Return filenames for dataset."""
-        if set_name == 'train':
-            return [
-                os.path.join(data_dir, 'train-%05d-of-01024' % i)
-                for i in range(_NUM_TRAIN_FILES)]
-        else:
-            return [
-                os.path.join(data_dir, 'validation-%05d-of-00128' % i)
-                for i in range(128)]
+        self.num_total_images = None
 
     def create_dataset(self, repeat=False):
 
         def _parse_function(example_serialized):
             """Parses an Example proto containing a training example of an image.
 
-            The output of the build_image_data.py image preprocessing script is a dataset
+            The output of the build_imagenet_dogs_data.py image preprocessing script is a dataset
             containing serialized Example protocol buffers. Each Example proto contains
             the following fields (values are included as examples):
 
@@ -99,7 +117,7 @@ class ImagenetDataset:
             bbox = tf.expand_dims(bbox, 0)
             bbox = tf.transpose(bbox, [0, 2, 1])
 
-            if self.opt.dnn.name == 'resnet':
+            if self.dnn_name == 'resnet':
                 image = imagenet_preprocessing.preprocess_image(
                     image_buffer=features['image/encoded'],
                     bbox=bbox,
@@ -107,9 +125,9 @@ class ImagenetDataset:
                     output_height=_DEFAULT_IMAGE_SIZE,
                     output_width=_DEFAULT_IMAGE_SIZE,
                     num_channels=_NUM_CHANNELS,
-                    is_training=(self.set_name == 'train'))
+                    crop=self.crop)
 
-            elif self.opt.dnn.name == 'inception':
+            elif self.dnn_name == 'inception':
                 image = tf.image.decode_jpeg(features['image/encoded'], channels=3)
                 image = tf.image.convert_image_dtype(image, dtype=tf.float32)
                 # Crop the central region of the image with an area containing 87.5% of
@@ -125,8 +143,8 @@ class ImagenetDataset:
                 image = tf.subtract(image/256, 0.5)
                 image = tf.multiply(image, 2.0)
 
-            elif self.opt.dnn.name == 'AlexNet':
-                if self.opt.yuv == False:
+            elif self.dnn_name == 'AlexNet':
+                if self.yuv == False:
                     with tf.device("/device:cpu:0"):
                         image = imagenet_preprocessing.preprocess_image(
                             image_buffer=features['image/encoded'],
@@ -149,39 +167,42 @@ class ImagenetDataset:
 
             return image, label
 
-        tfrecords_path = self.opt.dataset.log_dir_base + self.opt.dataset.log_name
+        tfrecords_path = os.path.join(self.dataset_log_dir_base,  self.dataset_log_name)
+        # filenames = self.get_filenames(self.set_name, tfrecords_path)
 
-        #filenames = self.get_filenames(self.set_name, tfrecords_path)
-
-        if self.set_name=='train':
+        if self.set_name == 'train':
             files = tf.data.Dataset.list_files(tfrecords_path + '/train-*')
-        else:
+        elif self.set_name == 'validation':
             files = tf.data.Dataset.list_files(tfrecords_path + '/validation-*')
+        elif self.set_name == 'test':
+            files = tf.data.Dataset.list_files(tfrecords_path + '/test-*')
+        else:
+            raise ValueError("This TFRecord does not exists")
 
         dataset = files.interleave(
             tf.data.TFRecordDataset, cycle_length=8,
             num_parallel_calls=8)
 
-        #dataset = tf.data.TFRecordDataset(filenames)
-
         if self.set_name == 'train':
-            # Shuffle the input files
+            # Shuffle the input files (TODO: ask Xavier why we need this when we already have shuffled data)
             dataset = dataset.shuffle(buffer_size=_NUM_TRAIN_FILES)
-            self.num_total_images = self.opt.dataset.num_images_training
+            self.num_total_images = self.num_images_train
+        elif self.set_name == 'validation':
+            self.num_total_images = self.num_images_validation
+        elif self.set_name == 'test':
+            self.num_total_images = self.num_images_test
         else:
-            self.num_total_images = self.opt.dataset.num_images_validation
-
-
-        #dataset = dataset.apply(tf.contrib.data.parallel_interleave(
-        #    tf.data.TFRecordDataset, cycle_length=_CYCLE_LENGTH))
+            raise ValueError("This split does not exist")
+        print('Number of total images', self.num_total_images)
 
         if repeat:
             dataset = dataset.repeat()  # Repeat the input indefinitely.
 
         dataset = dataset.apply(tf.contrib.data.map_and_batch(
-            map_func=_parse_function, batch_size=self.opt.hyper.batch_size, num_parallel_batches=8))
+            map_func=_parse_function,
+            batch_size=self.hyper_batch_size,
+            num_parallel_batches=8))
 
-        #dataset = dataset.map(_parse_function, num_parallel_calls=_NUM_THREADS)
         dataset = dataset.prefetch(buffer_size=2)
 
-        return dataset#dataset.batch(self.opt.hyper.batch_size)
+        return dataset  # dataset.batch(self.opt.hyper.batch_size)
