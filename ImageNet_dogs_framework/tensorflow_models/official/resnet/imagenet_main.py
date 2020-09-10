@@ -28,6 +28,10 @@ import sys
 sys.path.append("..")
 
 from utils.flags import core as flags_core
+from utils.logs import logger
+from resnet import imagenet_preprocessing
+from resnet import resnet_model
+from resnet import resnet_run_loop
 
 DEFAULT_IMAGE_SIZE = 224
 NUM_CHANNELS = 3

@@ -33,14 +33,18 @@ from absl import flags
 import tensorflow as tf
 from tensorflow.contrib.data.python.ops import threadpool
 
-from official.resnet import resnet_model
-from official.utils.flags import core as flags_core
-from official.utils.export import export
-from official.utils.logs import hooks_helper
-from official.utils.logs import logger
-from official.resnet import imagenet_preprocessing
-from official.utils.misc import distribution_utils
-from official.utils.misc import model_helpers
+
+import sys
+sys.path.append("..")
+
+from resnet import resnet_model
+from utils.flags import core as flags_core
+from utils.export import export
+from utils.logs import hooks_helper
+from utils.logs import logger
+from resnet import imagenet_preprocessing
+from utils.misc import distribution_utils
+from utils.misc import model_helpers
 
 
 ################################################################################

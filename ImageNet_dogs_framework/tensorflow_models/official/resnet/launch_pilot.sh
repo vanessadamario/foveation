@@ -14,6 +14,6 @@ python imagenet_main.py  \
 --data_dir=/om/user/vanessad/ImageNet_dogs_framework/TFRecords \
 --num_gpus=1 \
 --batch_size=64 \
---model_dir=/om/user/vanessad/ImageNet_dogs_framework/tensorflow_models/official/resnet/
+--model_dir=/om/user/vanessad/ImageNet_dogs_framework/tensorflow_models/official/resnet/pilot
 
 
