@@ -15,7 +15,7 @@
 """Contains utility and supporting functions for ResNet.
 
   This module contains ResNet code which does not directly build layers. This
-includes dataset management, hyperparameter and optimizer code, and argument
+includes dataset management, hyper-parameter and optimizer code, and argument
 parsing. Code for defining the ResNet layers can be found in resnet_model.py.
 """
 
@@ -581,21 +581,22 @@ def resnet_main(
     benchmark_logger.log_evaluation_result(eval_results)
 
     if model_helpers.past_stop_threshold(
-        flags_obj.stop_threshold, eval_results['accuracy']):
-      break
+            flags_obj.stop_threshold, eval_results['accuracy']):
+        break
 
   if flags_obj.export_dir is not None:
-    # Exports a saved model for the given classifier.
-    export_dtype = flags_core.get_tf_dtype(flags_obj)
-    if flags_obj.image_bytes_as_serving_input:
-      input_receiver_fn = functools.partial(
-          image_bytes_serving_input_fn, shape, dtype=export_dtype)
-    else:
-      input_receiver_fn = export.build_tensor_serving_input_receiver_fn(
-          shape, batch_size=flags_obj.batch_size, dtype=export_dtype)
-    classifier.export_savedmodel(flags_obj.export_dir, input_receiver_fn,
-                                 strip_default_attrs=True)
+      # Exports a saved model for the given classifier.
+      export_dtype = flags_core.get_tf_dtype(flags_obj)
+      if flags_obj.image_bytes_as_serving_input:
+          input_receiver_fn = functools.partial(
+              image_bytes_serving_input_fn, shape, dtype=export_dtype)
+      else:
+          input_receiver_fn = export.build_tensor_serving_input_receiver_fn(
+              shape, batch_size=flags_obj.batch_size, dtype=export_dtype)
+      classifier.export_savedmodel(flags_obj.export_dir, input_receiver_fn,
+                                   strip_default_attrs=True)
   return eval_results
+
 
 def define_resnet_flags(resnet_size_choices=None):
   """Add flags and validators for ResNet."""

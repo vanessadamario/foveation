@@ -33,33 +33,38 @@ from resnet import imagenet_preprocessing
 from resnet import resnet_model
 from resnet import resnet_run_loop
 
-DEFAULT_IMAGE_SIZE = 224
+DEFAULT_IMAGE_SIZE = 227
 NUM_CHANNELS = 3
-NUM_CLASSES = 1001
+NUM_CLASSES = 120
 
 NUM_IMAGES = {
-    'train': 1281167,
-    'validation': 50000,
+    'train': 10800,
+    'validation': 1200,
+    'test': 8580
 }
 
-_NUM_TRAIN_FILES = 1024
-_SHUFFLE_BUFFER = 10000
+_NUM_TRAIN_FILES = 12
+_SHUFFLE_BUFFER = 1000  # TODO: does this value make sense?
 
-DATASET_NAME = 'ImageNet'
+DATASET_NAME = 'DogsStanford'
 
 ###############################################################################
 # Data processing
 ###############################################################################
+
 def get_filenames(is_training, data_dir):
-  """Return filenames for dataset."""
+  """
+  Return filenames for dataset.
+  is_training: boolean value to denote the training set
+  """
   if is_training:
     return [
-        os.path.join(data_dir, 'train-%05d-of-01024' % i)
+        os.path.join(data_dir, 'train', 'train-%05d-of-00012' % i)
         for i in range(_NUM_TRAIN_FILES)]
   else:
     return [
-        os.path.join(data_dir, 'validation-%05d-of-00128' % i)
-        for i in range(128)]
+        os.path.join(data_dir, 'validation', 'validation-%05d-of-00012' % i)
+        for i in range(_NUM_TRAIN_FILES)]
 
 
 def _parse_example_proto(example_serialized):
@@ -151,6 +156,7 @@ def parse_record(raw_record, is_training, dtype):
 
   image = imagenet_preprocessing.preprocess_image(
       image_buffer=image_buffer,
+      label=None,
       bbox=bbox,
       output_height=DEFAULT_IMAGE_SIZE,
       output_width=DEFAULT_IMAGE_SIZE,
@@ -159,6 +165,9 @@ def parse_record(raw_record, is_training, dtype):
   image = tf.cast(image, dtype)
 
   return image, label
+
+
+
 
 
 def input_fn(is_training, data_dir, batch_size, num_epochs=1,

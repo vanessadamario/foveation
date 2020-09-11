@@ -105,7 +105,6 @@ def _resize_image(image, height, width):
       align_corners=False)
 
 
-
 def _mean_image_subtraction(image, means, num_channels):
   """Subtracts the given means from each image channel.
 
@@ -141,7 +140,7 @@ def _mean_image_subtraction(image, means, num_channels):
 
 
 def preprocess_image(image_buffer, bbox, label, output_height, output_width,
-                     num_channels, crop=True):
+                     num_channels, is_training, crop=False):
   """Pre processes the given image.
 
   Pre processing includes decoding, cropping, and resizing for both training
@@ -158,7 +157,7 @@ def preprocess_image(image_buffer, bbox, label, output_height, output_width,
     num_channels: Integer depth of the image buffer for decoding.
     is_training: `True` if we're preprocessing the image for training and
       `False` otherwise.
-
+    crop: bool flag to crop the image or not
   Returns:
     A preprocessed image.
   """
