@@ -156,7 +156,6 @@ def parse_record(raw_record, is_training, dtype):
 
   image = imagenet_preprocessing.preprocess_image(
       image_buffer=image_buffer,
-      label=None,
       bbox=bbox,
       output_height=DEFAULT_IMAGE_SIZE,
       output_width=DEFAULT_IMAGE_SIZE,
