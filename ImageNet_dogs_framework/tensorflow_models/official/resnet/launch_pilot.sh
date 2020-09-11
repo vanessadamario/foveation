@@ -8,7 +8,7 @@
 #SBATCH -t 01:00:00
 #SBATCH --qos=cbmm
 
-export PYTHONPATH="$PYTHONPATH:/om/user/vanessad/ImageNet_dogs_framework/tensorflow_models/official/resnet"
+export PYTHONPATH="$PYTHONPATH:/raid/poggio/home/vanessad/ImageNet_dogs_framework/tensorflow_models/official/resnet"
 
 singularity exec --nv /raid/poggio/home/xboix/containers/xboix-tensorflow1.14.simg \
 python imagenet_main.py  \
