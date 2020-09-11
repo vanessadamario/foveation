@@ -33,20 +33,20 @@ from resnet import imagenet_preprocessing
 from resnet import resnet_model
 from resnet import resnet_run_loop
 
-DEFAULT_IMAGE_SIZE = 227
+DEFAULT_IMAGE_SIZE = 224  # 227
 NUM_CHANNELS = 3
-NUM_CLASSES = 120
+NUM_CLASSES = 1001  # 120
 
 NUM_IMAGES = {
-    'train': 10800,
-    'validation': 1200,
-    'test': 8580
+    'train': 1281167,  # 10800,
+    'validation': 50000  # 1200,
+    # 'test': 8580
 }
 
-_NUM_TRAIN_FILES = 12
-_SHUFFLE_BUFFER = 1000  # TODO: does this value make sense?
+_NUM_TRAIN_FILES = 1024  # 12
+_SHUFFLE_BUFFER = 10000  # TODO: does this value make sense?
 
-DATASET_NAME = 'DogsStanford'
+DATASET_NAME = "ImageNet"  # 'DogsStanford'
 
 ###############################################################################
 # Data processing
@@ -59,11 +59,11 @@ def get_filenames(is_training, data_dir):
   """
   if is_training:
     return [
-        os.path.join(data_dir, 'train', 'train-%05d-of-00012' % i)
+        os.path.join(data_dir, 'train-%05d-of-01024' % i)  # add train
         for i in range(_NUM_TRAIN_FILES)]
   else:
     return [
-        os.path.join(data_dir, 'validation', 'validation-%05d-of-00012' % i)
+        os.path.join(data_dir, 'validation-%05d-of-00128' % i)  # add validation or test here as subdir
         for i in range(_NUM_TRAIN_FILES)]
 
 

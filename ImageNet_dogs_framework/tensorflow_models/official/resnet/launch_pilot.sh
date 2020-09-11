@@ -10,9 +10,9 @@
 
 export PYTHONPATH="$PYTHONPATH:/om/user/vanessad/ImageNet_dogs_framework/tensorflow_models/official/resnet"
 
-singularity exec -B /om:/om --nv /om/user/xboix/singularity/xboix-tensorflow1.14.simg \
+singularity exec --nv /raid/poggio/home/xboix/containers/xboix-tensorflow1.14.simg \
 python imagenet_main.py  \
---data_dir= /raid/poggio/home/xboix/data/imagenet-tfrecords\
+--data_dir=/raid/poggio/home/xboix/data/imagenet-tfrecords \
 --num_gpus=4 \
 --batch_size=128 \
 --train_epochs=20 \
