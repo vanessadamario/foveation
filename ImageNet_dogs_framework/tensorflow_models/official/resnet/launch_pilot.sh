@@ -16,6 +16,6 @@ python imagenet_main.py  \
 --num_gpus=4 \
 --batch_size=128 \
 --train_epochs=20 \
---model_dir=/om/user/vanessad/ImageNet_dogs_framework/tensorflow_models/official/resnet/pilot_cropped
+--model_dir=/raid/poggio/home/vanessad/resnet_experiments/foveation/ImageNet_dogs_framework/tensorflow_models/official/resnet/pilot
 
 
