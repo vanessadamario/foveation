@@ -64,7 +64,7 @@ def get_filenames(is_training, data_dir):
   else:
     return [
         os.path.join(data_dir, 'validation-%05d-of-00128' % i)  # add validation or test here as subdir
-        for i in range(_NUM_TRAIN_FILES)]
+        for i in range(128)]
 
 
 def _parse_example_proto(example_serialized):
