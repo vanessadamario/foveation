@@ -58,13 +58,13 @@ def get_filenames(is_training, data_dir):
   is_training: boolean value to denote the training set
   """
   if is_training:
-    return [
+    return sorted([
         os.path.join(data_dir, 'train-%05d-of-01024' % i)  # add train
-        for i in range(_NUM_TRAIN_FILES)]
+        for i in range(_NUM_TRAIN_FILES)])
   else:
-    return [
+    return sorted([
         os.path.join(data_dir, 'validation-%05d-of-00128' % i)  # add validation or test here as subdir
-        for i in range(128)]
+        for i in range(128)])
 
 
 def _parse_example_proto(example_serialized):
@@ -188,11 +188,13 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1,
     A dataset that can be used for iteration.
   """
   filenames = get_filenames(is_training, data_dir)
+  print(filenames)
   dataset = tf.data.Dataset.from_tensor_slices(filenames)
 
-  if is_training:
+  # TODO: ABSOLUTELY RESTORE
+  # if is_training:
     # Shuffle the input files
-    dataset = dataset.shuffle(buffer_size=_NUM_TRAIN_FILES)
+    # dataset = dataset.shuffle(buffer_size=_NUM_TRAIN_FILES)
 
   # Convert to individual records.
   # cycle_length = 10 means 10 files will be read and deserialized in parallel.
