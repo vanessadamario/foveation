@@ -35,7 +35,7 @@ from resnet import resnet_run_loop
 
 DEFAULT_IMAGE_SIZE = 227  # 227
 NUM_CHANNELS = 3
-NUM_CLASSES = 120  # 120
+NUM_CLASSES = 1001  # 120
 
 NUM_IMAGES = {
     'train': 10800,  #
@@ -136,7 +136,7 @@ def _parse_example_proto(example_serialized):
   return features['image/encoded'], label, bbox
 
 
-def parse_record(raw_record, is_training, dtype):
+def parse_record(raw_record, is_training, crop, dtype):
   """Parses a record containing a training example of an image.
 
   The input record is parsed into a label and image, and the image is passed
@@ -146,6 +146,7 @@ def parse_record(raw_record, is_training, dtype):
     raw_record: scalar Tensor tf.string containing a serialized
       Example protocol buffer.
     is_training: A boolean denoting whether the input is for training.
+    crop: a boolean denoting if we want to crop the image.
     dtype: data type to use for images/features.
 
   Returns:
@@ -159,19 +160,21 @@ def parse_record(raw_record, is_training, dtype):
       output_height=DEFAULT_IMAGE_SIZE,
       output_width=DEFAULT_IMAGE_SIZE,
       num_channels=NUM_CHANNELS,
-      is_training=is_training)
+      is_training=is_training,
+      crop=crop)
   image = tf.cast(image, dtype)
 
   return image, label
 
 
-def input_fn(is_training, data_dir, batch_size, num_epochs=1,
+def input_fn(is_training, crop, data_dir, batch_size, num_epochs=1,
              dtype=tf.float32, datasets_num_private_threads=None,
              num_parallel_batches=1, parse_record_fn=parse_record):
   """Input function which provides batches for train or eval.
 
   Args:
     is_training: A boolean denoting whether the input is for training.
+    crop: A boolean denoting whether we crop the image.
     data_dir: The directory containing the input data.
     batch_size: The number of samples per batch.
     num_epochs: The number of epochs to repeat the dataset.
@@ -184,7 +187,6 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1,
     A dataset that can be used for iteration.
   """
   filenames = get_filenames(is_training, data_dir)
-  print(filenames)
   dataset = tf.data.Dataset.from_tensor_slices(filenames)
 
   # TODO: ABSOLUTELY RESTORE
@@ -203,6 +205,7 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1,
   return resnet_run_loop.process_record_dataset(
       dataset=dataset,
       is_training=is_training,
+      crop=crop,
       batch_size=batch_size,
       shuffle_buffer=_SHUFFLE_BUFFER,
       parse_record_fn=parse_record_fn,

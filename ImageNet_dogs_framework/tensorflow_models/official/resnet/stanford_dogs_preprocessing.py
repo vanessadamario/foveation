@@ -161,7 +161,12 @@ def preprocess_image(image_buffer, bbox, output_height, output_width,
   Returns:
     A preprocessed image.
   """
-  crop = False
+  print("")
+  print("")
+  print("")
+  print("")
+  print("CROP")
+  print(crop)
   image = tf.io.decode_jpeg(image_buffer, channels=num_channels)
   if crop:
     image = _crop_bounding_box(image, bbox)

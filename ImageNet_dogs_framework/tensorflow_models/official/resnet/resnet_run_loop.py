@@ -52,6 +52,7 @@ from utils.misc import model_helpers
 ################################################################################
 def process_record_dataset(dataset,
                            is_training,
+                           crop,
                            batch_size,
                            shuffle_buffer,
                            parse_record_fn,
@@ -64,6 +65,7 @@ def process_record_dataset(dataset,
   Args:
     dataset: A Dataset representing raw records
     is_training: A boolean denoting whether the input is for training.
+    crop: A boolean denoting whether we crop the input using bounding box.
     batch_size: The number of samples per batch.
     shuffle_buffer: The buffer size to use when shuffling records. A larger
       value results in better randomness, but smaller values reduce startup
@@ -93,7 +95,7 @@ def process_record_dataset(dataset,
   # Parses the raw records into images and labels.
   dataset = dataset.apply(
       tf.contrib.data.map_and_batch(
-          lambda value: parse_record_fn(value, is_training, dtype),
+          lambda value: parse_record_fn(value, is_training, crop, dtype),
           batch_size=batch_size,
           num_parallel_batches=num_parallel_batches,
           drop_remainder=False))

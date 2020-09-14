@@ -16,6 +16,7 @@ python imagenet_main.py  \
 --num_gpus=8 \
 --batch_size=128 \
 --train_epochs=90 \
+--crop_image=True \
 --model_dir=/raid/poggio/home/vanessad/resnet_experiments/foveation/ImageNet_dogs_framework/tensorflow_models/official/resnet/no_crop_all_data
 
 
