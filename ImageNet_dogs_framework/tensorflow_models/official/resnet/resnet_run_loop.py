@@ -535,7 +535,9 @@ def resnet_main(
         num_epochs=num_epochs,
         dtype=flags_core.get_tf_dtype(flags_obj),
         datasets_num_private_threads=flags_obj.datasets_num_private_threads,
-        num_parallel_batches=flags_obj.datasets_num_parallel_batches)
+        num_parallel_batches=flags_obj.datasets_num_parallel_batches,
+        crop=flags_obj.crop_image
+    )
 
   def input_fn_eval():
     return input_function(
@@ -544,7 +546,8 @@ def resnet_main(
         batch_size=distribution_utils.per_device_batch_size(
             flags_obj.batch_size, flags_core.get_num_gpus(flags_obj)),
         num_epochs=1,
-        dtype=flags_core.get_tf_dtype(flags_obj))
+        dtype=flags_core.get_tf_dtype(flags_obj),
+        crop=flags_obj.crop_image)
 
   if flags_obj.eval_only or not flags_obj.train_epochs:
     # If --eval_only is set, perform a single loop with zero train epochs.
