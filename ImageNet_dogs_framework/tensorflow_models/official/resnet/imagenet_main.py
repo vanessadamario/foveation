@@ -165,9 +165,6 @@ def parse_record(raw_record, is_training, dtype):
   return image, label
 
 
-
-
-
 def input_fn(is_training, data_dir, batch_size, num_epochs=1,
              dtype=tf.float32, datasets_num_private_threads=None,
              num_parallel_batches=1, parse_record_fn=parse_record):

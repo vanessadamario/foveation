@@ -585,7 +585,7 @@ def resnet_main(
         break
 
   if flags_obj.export_dir is not None:
-      # Exports a saved model for the given classifier.
+      # Exports a saved model for the given classifier
       export_dtype = flags_core.get_tf_dtype(flags_obj)
       if flags_obj.image_bytes_as_serving_input:
           input_receiver_fn = functools.partial(

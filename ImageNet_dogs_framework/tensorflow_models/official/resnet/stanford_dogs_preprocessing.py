@@ -84,6 +84,7 @@ def _crop_bounding_box(image, bbox):
   padded = tf.pad(cropped, paddings, mode='CONSTANT', name=None, constant_values=0)
   return padded
 
+
 def _resize_image(image, height, width):
   """Simple wrapper around tf.resize_images.
 
