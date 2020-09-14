@@ -42,7 +42,7 @@ from utils.flags import core as flags_core
 from utils.export import export
 from utils.logs import hooks_helper
 from utils.logs import logger
-from resnet import imagenet_preprocessing
+from resnet import stanford_dogs_preprocessing as imagenet_preprocessing
 from utils.misc import distribution_utils
 from utils.misc import model_helpers
 

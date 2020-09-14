@@ -29,24 +29,23 @@ sys.path.append("..")
 
 from utils.flags import core as flags_core
 from utils.logs import logger
-from resnet import imagenet_preprocessing
+from resnet import stanford_dogs_preprocessing as imagenet_preprocessing
 from resnet import resnet_model
 from resnet import resnet_run_loop
 
-DEFAULT_IMAGE_SIZE = 224  # 227
+DEFAULT_IMAGE_SIZE = 227  # 227
 NUM_CHANNELS = 3
 NUM_CLASSES = 1001  # 120
 
 NUM_IMAGES = {
-    'train': 1281167,  # 10800,
-    'validation': 50000  # 1200,
+    'train': 10800,  #
+    'validation': 1200  # 50000
     # 'test': 8580
 }
 
-_NUM_TRAIN_FILES = 1024  # 12
-_SHUFFLE_BUFFER = 10000  # TODO: does this value make sense?
-
-DATASET_NAME = "ImageNet"  # 'DogsStanford'
+_NUM_TRAIN_FILES = 12  # 1024
+_SHUFFLE_BUFFER = 10000
+DATASET_NAME = 'DogsStanford'  # "ImageNet"
 
 ###############################################################################
 # Data processing
@@ -59,12 +58,12 @@ def get_filenames(is_training, data_dir):
   """
   if is_training:
     return sorted([
-        os.path.join(data_dir, 'train-%05d-of-01024' % i)  # add train
+        os.path.join(data_dir, 'train',  'train-%05d-of-00012' % i)  # add train
         for i in range(_NUM_TRAIN_FILES)])
   else:
     return sorted([
-        os.path.join(data_dir, 'validation-%05d-of-00128' % i)  # add validation or test here as subdir
-        for i in range(128)])
+        os.path.join(data_dir, 'validation', 'validation-%05d-of-00012' % i)  # add validation or test here as subdir
+        for i in range(12)])
 
 
 def _parse_example_proto(example_serialized):
@@ -192,9 +191,9 @@ def input_fn(is_training, data_dir, batch_size, num_epochs=1,
   dataset = tf.data.Dataset.from_tensor_slices(filenames)
 
   # TODO: ABSOLUTELY RESTORE
-  # if is_training:
+  if is_training:
     # Shuffle the input files
-    # dataset = dataset.shuffle(buffer_size=_NUM_TRAIN_FILES)
+    dataset = dataset.shuffle(buffer_size=_NUM_TRAIN_FILES)
 
   # Convert to individual records.
   # cycle_length = 10 means 10 files will be read and deserialized in parallel.

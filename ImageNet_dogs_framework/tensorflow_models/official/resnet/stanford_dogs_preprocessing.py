@@ -21,7 +21,6 @@ then resized to the target output size (without aspect-ratio preservation).
 Images used during evaluation are resized (with aspect-ratio preservation) and
 centrally cropped.
 
-# TODO: false, we normalize
 All images undergo mean color subtraction.
 
 Note that these steps are colloquially referred to as "ResNet preprocessing,"
@@ -161,6 +160,7 @@ def preprocess_image(image_buffer, bbox, label, output_height, output_width,
   Returns:
     A preprocessed image.
   """
+  crop = False
   image = tf.io.decode_jpeg(image_buffer, channels=num_channels)
   if crop:
     image = _crop_bounding_box(image, bbox)

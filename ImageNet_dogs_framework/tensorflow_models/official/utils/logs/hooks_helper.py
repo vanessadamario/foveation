@@ -57,19 +57,6 @@ def get_train_hooks(name_list, use_tpu=False, **kwargs):
   Raises:
     ValueError: if an unrecognized name is passed.
   """
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" ")
-  print(" NAME LIST ")
-  print(name_list)
 
   if not name_list:
     return []
@@ -87,7 +74,6 @@ def get_train_hooks(name_list, use_tpu=False, **kwargs):
       raise ValueError('Unrecognized training hook requested: {}'.format(name))
     else:
       train_hooks.append(hook_name(**kwargs))
-  print(train_hooks)
 
   return train_hooks
 
