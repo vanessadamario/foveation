@@ -35,7 +35,7 @@ from resnet import resnet_run_loop
 
 DEFAULT_IMAGE_SIZE = 227  # 227
 NUM_CHANNELS = 3
-NUM_CLASSES = 1001  # 120
+NUM_CLASSES = 121  # 120
 
 NUM_IMAGES = {
     'train': 10800,  #
