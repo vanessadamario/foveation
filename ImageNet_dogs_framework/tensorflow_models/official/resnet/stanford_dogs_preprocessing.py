@@ -138,7 +138,7 @@ def _mean_image_subtraction(image, means, num_channels):
   return image - means
 
 
-def preprocess_image(image_buffer, bbox, label, output_height, output_width,
+def preprocess_image(image_buffer, bbox, output_height, output_width,
                      num_channels, is_training, crop=False):
   """Pre processes the given image.
 
