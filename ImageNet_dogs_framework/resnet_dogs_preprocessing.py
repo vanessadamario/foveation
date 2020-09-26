@@ -38,15 +38,15 @@ from __future__ import print_function
 
 import tensorflow as tf
 
-# _R_MEAN = 123.68
-# _G_MEAN = 116.78
-# _B_MEAN = 103.94
-# _CHANNEL_MEANS = [_R_MEAN, _G_MEAN, _B_MEAN]
+_R_MEAN = 123.68
+_G_MEAN = 116.78
+_B_MEAN = 103.94
+_CHANNEL_MEANS = [_R_MEAN, _G_MEAN, _B_MEAN]
 
 # The lower bound for the smallest side of the image for aspect-preserving
 # resizing. For example, if an image is 500 x 1000, it will be resized to
 # _RESIZE_MIN x (_RESIZE_MIN * 2).
-# _RESIZE_MIN = 256
+_RESIZE_MIN = 256
 
 
 def _crop_bounding_box(image, bbox):
@@ -78,12 +78,13 @@ def _crop_bounding_box(image, bbox):
                                           xminn,
                                           ymaxx - yminn,
                                           xmaxx - xminn)
-  padding_chs = tf.fill([2], 0)  # a Tensor with values [0, 0]
-  paddings = ([[yminn, shape[0] - ymaxx],
-               [xminn, shape[1] - xmaxx],
-               padding_chs])
-  padded = tf.pad(cropped, paddings, mode='CONSTANT', name=None, constant_values=0)
-  return padded
+  # padding_chs = tf.fill([2], 0)  # a Tensor with values [0, 0]
+  # paddings = ([[yminn, shape[0] - ymaxx],
+  #              [xminn, shape[1] - xmaxx],
+  #              padding_chs])
+  # padded = tf.pad(cropped, paddings, mode='CONSTANT', name=None, constant_values=0)
+  return cropped  # padded
+
 
 def _resize_image(image, height, width):
   """Simple wrapper around tf.resize_images.
@@ -103,6 +104,40 @@ def _resize_image(image, height, width):
   return tf.image.resize_images(
       image, [height, width], method=tf.image.ResizeMethod.BILINEAR,
       align_corners=False)
+
+
+def _mean_image_subtraction(image, means, num_channels):
+  """Subtracts the given means from each image channel.
+
+  For example:
+    means = [123.68, 116.779, 103.939]
+    image = _mean_image_subtraction(image, means)
+
+  Note that the rank of `image` must be known.
+
+  Args:
+    image: a tensor of size [height, width, C].
+    means: a C-vector of values to subtract from each channel.
+    num_channels: number of color channels in the image that will be distorted.
+
+  Returns:
+    the centered image.
+
+  Raises:
+    ValueError: If the rank of `image` is unknown, if `image` has a rank other
+      than three or if the number of channels in `image` doesn't match the
+      number of values in `means`.
+  """
+  if image.get_shape().ndims != 3:
+    raise ValueError('Input must be of size [height, width, C>0]')
+
+  if len(means) != num_channels:
+    raise ValueError('len(means) must match the number of channels')
+
+  # We have a 1-D tensor of means; convert to 3-D.
+  means = tf.expand_dims(tf.expand_dims(means, 0), 0)
+
+  return image - means
 
 
 def preprocess_image(image_buffer, bbox, label, output_height, output_width,
@@ -134,4 +169,4 @@ def preprocess_image(image_buffer, bbox, label, output_height, output_width,
   image = _resize_image(image, output_height, output_width)
   image.set_shape([output_height, output_width, num_channels])
 
-  return image / 255
+  return _mean_image_subtraction(image, _CHANNEL_MEANS, num_channels)

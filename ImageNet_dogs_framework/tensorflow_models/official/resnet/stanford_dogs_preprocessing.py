@@ -48,8 +48,42 @@ _CHANNEL_MEANS = [_R_MEAN, _G_MEAN, _B_MEAN]
 _RESIZE_MIN = 256
 
 
-def _crop_bounding_box(image, bbox):
+def _crop_bb_no_padding(image, bbox):
   """
+  CROP AND RESCALING WO PADDING
+  Function to generate cropped 3D image. We remove what is not in the bounding
+  box, and pad the cropped image, so to preserve the original dimension before the cropping.
+  Parameters
+      :image: a 3D image tf.tensor
+      :bbox: bbox: 3-D float Tensor of bounding boxes arranged [1, num_boxes, coords]
+    where each coordinate is [0, 1) and the coordinates are arranged as
+    [ymin, xmin, ymax, xmax]
+  Return
+      cropped_padded_image: a 3D tf.tensor of the same dimension as the original image
+  """
+  ymin = bbox[0, 0, 0]
+  xmin = bbox[0, 0, 1]
+  ymax = bbox[0, 0, 2]
+  xmax = bbox[0, 0, 3]
+
+  shape = tf.shape(image)
+  im_height, im_width = tf.cast(shape[0], tf.float32), tf.cast(shape[1], tf.float32)
+  (xminn, xmaxx, yminn, ymaxx) = (xmin * im_width, xmax * im_width, ymin * im_height, ymax * im_height)
+  yminn = tf.cast(yminn, tf.int32)
+  ymaxx = tf.cast(ymaxx, tf.int32)
+  xminn = tf.cast(xminn, tf.int32)
+  xmaxx = tf.cast(xmaxx, tf.int32)
+  cropped = tf.image.crop_to_bounding_box(image,
+                                          yminn,
+                                          xminn,
+                                          ymaxx - yminn,
+                                          xmaxx - xminn)
+  return cropped
+
+
+def _crop_bb_padding(image, bbox):
+  """
+  CROP AND PADDING BY KEEPING THE ORIGINAL POSITION, WO RESCALING
   Function to generate cropped 3D image. We remove what is not in the bounding
   box, and pad the cropped image, so to preserve the original dimension before the cropping.
   Parameters
@@ -83,6 +117,44 @@ def _crop_bounding_box(image, bbox):
                padding_chs])
   padded = tf.pad(cropped, paddings, mode='CONSTANT', name=None, constant_values=0)
   return padded
+
+
+def _crop_bb_centering_padding(image, bbox):
+  """
+  CROP AND PADDING AND CENTERING, WO RESCALING
+  Function to generate cropped 3D image. We remove what is not in the bounding
+  box, and pad the cropped image, so to preserve the original dimension before the cropping.
+  Parameters
+      :image: a 3D image tf.tensor
+      :bbox: bbox: 3-D float Tensor of bounding boxes arranged [1, num_boxes, coords]
+    where each coordinate is [0, 1) and the coordinates are arranged as
+    [ymin, xmin, ymax, xmax]
+  Return
+      cropped_padded_image: a 3D tf.tensor of the same dimension as the original image
+  """
+  ymin = bbox[0, 0, 0]
+  xmin = bbox[0, 0, 1]
+  ymax = bbox[0, 0, 2]
+  xmax = bbox[0, 0, 3]
+
+  shape = tf.shape(image)
+  im_height, im_width = tf.cast(shape[0], tf.float32), tf.cast(shape[1], tf.float32)
+  (xminn, xmaxx, yminn, ymaxx) = (xmin * im_width, xmax * im_width, ymin * im_height, ymax * im_height)
+  yminn = tf.cast(yminn, tf.int32)
+  ymaxx = tf.cast(ymaxx, tf.int32)
+  xminn = tf.cast(xminn, tf.int32)
+  xmaxx = tf.cast(xmaxx, tf.int32)
+  cropped = tf.image.crop_to_bounding_box(image,
+                                          yminn,
+                                          xminn,
+                                          ymaxx - yminn,
+                                          xmaxx - xminn)
+  return tf.image.resize_image_with_crop_or_pad(cropped, shape[0], shape[1])
+
+
+preprocessing_dict = {1: _crop_bb_padding,
+                      2: _crop_bb_no_padding,
+                      3: _crop_bb_centering_padding}
 
 
 def _resize_image(image, height, width):
@@ -157,19 +229,15 @@ def preprocess_image(image_buffer, bbox, output_height, output_width,
     num_channels: Integer depth of the image buffer for decoding.
     is_training: `True` if we're preprocessing the image for training and
       `False` otherwise.
-    crop: bool flag to crop the image or not
+    crop: integer, index for experiment preprocessing to play with
   Returns:
     A preprocessed image.
   """
-  print("")
-  print("")
-  print("")
-  print("")
   print("CROP")
   print(crop)
   image = tf.io.decode_jpeg(image_buffer, channels=num_channels)
-  if crop:
-    image = _crop_bounding_box(image, bbox)
+  if crop != 0:
+    image = preprocessing_dict[crop](image, bbox)
 
   image = _resize_image(image, output_height, output_width)
   image.set_shape([output_height, output_width, num_channels])

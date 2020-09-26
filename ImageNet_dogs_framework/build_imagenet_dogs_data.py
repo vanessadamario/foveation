@@ -656,12 +656,13 @@ def _build_bounding_box_lookup(bounding_box_path):
 
 def main():
 
-    output_directory = '/om/user/vanessad/ImageNet_dogs_framework/TFRecords'
-    split_directory = '/om/user/vanessad/ImageNet_dogs_framework/dataset/Lists/NEW_List'
+    # output_directory = '/om/user/vanessad/ImageNet_dogs_framework/TFRecords_14'
+    output_directory = "/om/user/vanessad/ImageNet_dogs_framework/TFRecords_StanfordDogs/TFRecords_14"
+    split_directory = '/om/user/vanessad/ImageNet_dogs_framework/dataset/Lists/NEW_List_14'
     annotation_folder = '/om/user/vanessad/ImageNet_dogs_framework/dataset/Annotation'
 
-    num_shards = 12
-    num_threads = 2
+    num_shards = 1
+    num_threads = 1
 
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
@@ -679,7 +680,6 @@ def main():
     # Build a map from synset to human-readable label.
     synset_to_human = _build_synset_lookup(annotation_folder)
     image_to_bboxes = _build_bounding_box_lookup(annotation_folder)
-
 
     # Run it!
     for id_, s_ in enumerate(splits):

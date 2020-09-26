@@ -10,14 +10,6 @@ _DEFAULT_IMAGE_SIZE = 227
 _NUM_CHANNELS = 3
 _NUM_SHARDS = 12
 
-# old opt fields
-# opt.dnn.name
-# self.opt.dataset.log_dir_base
-# self.opt.dataset.log_name
-# self.opt.yuv
-# self.opt.dataset.num_images_training
-# self.opt.dataset.num_images_validation
-# self.opt.hyper.batch_size
 
 
 class ImagenetDataset:
@@ -33,7 +25,7 @@ class ImagenetDataset:
                  num_images_test=8580,
                  hyper_batch_size=64,
                  yuv=False,
-                 crop=True):
+                 crop=0):
         self.set_name = set_name
         # self.num_total_images
         self.dnn_name = dnn_name

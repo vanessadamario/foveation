@@ -28,7 +28,7 @@ from utils.flags._conventions import help_wrap
 from utils.logs import hooks_helper
 
 
-def define_base(crop_image=True, data_dir=True, model_dir=True, clean=True, train_epochs=True,
+def define_base(crop_image=0, data_dir=True, model_dir=True, clean=True, train_epochs=True,
                 epochs_between_evals=True, stop_threshold=True, batch_size=True,
                 num_gpu=True, hooks=True, export_dir=True):
   """Register base flags.
@@ -52,7 +52,7 @@ def define_base(crop_image=True, data_dir=True, model_dir=True, clean=True, trai
   key_flags = []
 
   if crop_image:
-      flags.DEFINE_boolean(
+      flags.DEFINE_integer(
           name='crop_image', short_name="crp", default=0,
           help=help_wrap("If True, we use the bounding box at training and test"))
       key_flags.append("crop_image")
