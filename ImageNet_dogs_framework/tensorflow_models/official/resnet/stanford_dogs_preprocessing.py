@@ -50,7 +50,7 @@ _RESIZE_MIN = 256
 
 def _crop_bb_no_padding(image, bbox):
   """
-  CROP AND RESCALING WO PADDING
+  CROP WO PADDING
   Function to generate cropped 3D image. We remove what is not in the bounding
   box, and pad the cropped image, so to preserve the original dimension before the cropping.
   Parameters
