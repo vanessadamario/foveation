@@ -152,9 +152,24 @@ def _crop_bb_centering_padding(image, bbox):
   return tf.image.resize_image_with_crop_or_pad(cropped, shape[0], shape[1])
 
 
+def _crop_bb_rescale_centering_padding(image,
+                                       bbox,
+                                       height,
+                                       width,
+                                       rescaling=2):
+    """
+    Scenario 4.
+    Centered image, with background of constant size across images.
+    """
+    cropped = _crop_bb_no_padding(image, bbox)
+    resized = _resize_image(cropped, height//rescaling, width//rescaling)
+    return tf.image.resize_image_with_crop_or_pad(resized, height, width)
+
+
 preprocessing_dict = {1: _crop_bb_padding,
                       2: _crop_bb_no_padding,
-                      3: _crop_bb_centering_padding}
+                      3: _crop_bb_centering_padding,
+                      4: _crop_bb_rescale_centering_padding}
 
 
 def _resize_image(image, height, width):
@@ -236,9 +251,13 @@ def preprocess_image(image_buffer, bbox, output_height, output_width,
   print("CROP")
   print(crop)
   image = tf.io.decode_jpeg(image_buffer, channels=num_channels)
+
+  if crop == 4:
+    image = preprocessing_dict[crop](image, bbox, output_height, output_width)
+    return _mean_image_subtraction(image, _CHANNEL_MEANS, num_channels)
+
   if crop != 0:
     image = preprocessing_dict[crop](image, bbox)
-
   image = _resize_image(image, output_height, output_width)
   image.set_shape([output_height, output_width, num_channels])
 
