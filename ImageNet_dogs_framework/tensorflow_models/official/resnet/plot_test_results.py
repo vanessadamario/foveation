@@ -71,7 +71,7 @@ for id_s_, s_ in enumerate(scenario_list):
     shift += 1
 plt.xlabel("Training examples per class", fontsize=55, labelpad=10)
 plt.ylabel("Top-1 test accuracy", fontsize=55)
-plt.xticks(n_axis, np.array([n_train_list] * 5).reshape(-1, ),
+plt.xticks(n_axis, np.array([n_train_list[::-1]] * 5).reshape(-1, ),
            fontsize=40, rotation=90)
 for jj in range(4):
     plt.axhline(0.1 * jj, color="gainsboro")
@@ -85,6 +85,6 @@ sns.set_style(style="white")
 
 plt.subplots_adjust(top=0.85)
 sns.despine()
-plt.title("Stanford Dogs", fontsize=65, pad=40)
+plt.title("Stanford Dogs", fontsize=65, pad=100)
 plt.tight_layout(rect=[0.05, 0.03, 1, 0.95])
 plt.savefig("test_results.pdf")
