@@ -1,1 +1,4 @@
 # foveation
+
+This repo contains the main experiments for the analysis of neural networks data efficiency in relation to additional input dimensions. The repo is divided in synthetic_framework, covering all the experiments of the synthetic case (linearly separable and non linearly separable classifiers), the MNIST_framework for the experiments on the MNIST natural and synthetic datasets, and the ImageNet_dogs_framework for the experiment on the Stanford Dogs dataset. 
+All the folders contain a main file, through which is possible to train and test different networks. Whose hyper-parameters are set through the experiments.py file.
